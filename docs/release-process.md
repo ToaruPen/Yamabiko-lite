@@ -30,12 +30,12 @@ verification suite passes.
 3. Create and push a stable tag.
 
    ```bash
-   git tag v0.1.0
-   git push origin v0.1.0
+   git tag v0.1.2
+   git push origin v0.1.2
    ```
 
    The Release workflow will move the floating tags for the same compatibility
-   line after the exact tag is pushed. For `v0.1.0`, that means `v0` and `v0.1`
+   line after the exact tag is pushed. For `v0.1.2`, that means `v0` and `v0.1`
    will be updated automatically.
 
 4. Confirm the Release workflow succeeds.
@@ -52,8 +52,12 @@ verification suite passes.
    `README.md` should point to the intended adoption channel:
 
    - `uses: ToaruPen/Yamabiko-lite@v0` for automatic compatible upgrades
-   - `uses: ToaruPen/Yamabiko-lite@v0.1.0` for an exact release pin
+   - `uses: ToaruPen/Yamabiko-lite@v0.1` for automatic patch upgrades within the current minor line
+   - `uses: ToaruPen/Yamabiko-lite@v0.1.2` for an exact release pin
    - `uses: ToaruPen/Yamabiko-lite@<commit-sha>` for maximum auditability
+
+   If you update the exact-pin example, keep it aligned with the latest
+   published release while leaving `@v0` as the automatic-upgrade example.
 
 ## Distributed Skill Template
 
