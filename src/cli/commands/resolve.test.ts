@@ -104,6 +104,16 @@ describe("inbox resolve", () => {
     expect(writtenRecords[0]!.status).toBe("fixed");
     expect(writtenRecords[0]!.updatedAt).not.toBe(record.updatedAt);
     expect(mockMkdir).toHaveBeenCalledTimes(2);
+    expect(mockMkdir).toHaveBeenNthCalledWith(
+      1,
+      "/tmp/yamabiko-inbox-test/.yamabiko-lite/inbox/owner/repo",
+      { recursive: true },
+    );
+    expect(mockMkdir).toHaveBeenNthCalledWith(
+      2,
+      "/tmp/yamabiko-inbox-test/.yamabiko-lite/inbox/owner/repo",
+      { recursive: true },
+    );
   });
 
   test("resolves claimed → skipped", async () => {
