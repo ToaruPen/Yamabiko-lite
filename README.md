@@ -51,8 +51,8 @@ V1 is implemented and merged on `main`.
 - A repo-local `/check-inbox` command skill is implemented
 - Strict validation, retry, stale-head filtering, and integrity guards are in place
 
-The remaining gap is publishing the first stable release tag and finishing the
-external distribution story around the CLI and `/check-inbox` template.
+The remaining gap is broader external distribution for the CLI and a packaged
+`/check-inbox` path beyond this repository.
 
 ## Use In Another Repository
 
