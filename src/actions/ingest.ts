@@ -210,11 +210,16 @@ async function runIngestion(
     owner: context.owner,
   });
   await Bun.write(path.join(worktreePath, mdPath), markdown);
-  await deps.commitAndPushInbox(
+  const pushed = await deps.commitAndPushInbox(
     worktreePath,
     options.branchName,
     `ingest: PR #${String(context.prNumber)}`,
   );
+
+  if (!pushed) {
+    console.log("No changes to commit — inbox content is already up to date.");
+    return emptyResult();
+  }
 
   return {
     added: reconciled.added,
