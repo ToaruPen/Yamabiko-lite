@@ -1,14 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { unlink } from "node:fs/promises";
-import { join } from "node:path";
+import path from "node:path";
 
 import type { InboxRecord } from "../schema/inbox-record.ts";
-import { appendJsonlRecord, readJsonlFile, writeJsonlFile } from "./jsonl.ts";
 
-function makeTempPath(): string {
-  return join("/tmp", `yamabiko-test-${randomUUID()}.jsonl`);
-}
+import { appendJsonlRecord, readJsonlFile, writeJsonlFile } from "./jsonl.ts";
 
 function makeRecord(overrides: Partial<InboxRecord> = {}): InboxRecord {
   return {
@@ -29,25 +26,29 @@ function makeRecord(overrides: Partial<InboxRecord> = {}): InboxRecord {
   };
 }
 
-let tempFiles: string[];
+function makeTemporaryPath(): string {
+  return path.join("/tmp", `yamabiko-test-${randomUUID()}.jsonl`);
+}
+
+let temporaryFiles: string[];
 
 beforeEach(() => {
-  tempFiles = [];
+  temporaryFiles = [];
 });
 
 afterEach(async () => {
-  await Promise.allSettled(tempFiles.map((f) => unlink(f)));
+  await Promise.allSettled(temporaryFiles.map((f) => unlink(f)));
 });
 
-function trackTemp(): string {
-  const p = makeTempPath();
-  tempFiles.push(p);
+function trackTemporary(): string {
+  const p = makeTemporaryPath();
+  temporaryFiles.push(p);
   return p;
 }
 
 describe("readJsonlFile", () => {
   it("returns empty array for empty file", async () => {
-    const p = trackTemp();
+    const p = trackTemporary();
     await Bun.write(p, "");
 
     const records = await readJsonlFile(p);
@@ -56,10 +57,10 @@ describe("readJsonlFile", () => {
   });
 
   it("parses file with 3 valid records", async () => {
-    const r1 = makeRecord({ id: "rec-1", commentId: 1 });
-    const r2 = makeRecord({ id: "rec-2", commentId: 2 });
-    const r3 = makeRecord({ id: "rec-3", commentId: 3 });
-    const p = trackTemp();
+    const r1 = makeRecord({ commentId: 1, id: "rec-1" });
+    const r2 = makeRecord({ commentId: 2, id: "rec-2" });
+    const r3 = makeRecord({ commentId: 3, id: "rec-3" });
+    const p = trackTemporary();
     await Bun.write(p, [r1, r2, r3].map((r) => JSON.stringify(r)).join("\n"));
 
     const records = await readJsonlFile(p);
@@ -72,10 +73,10 @@ describe("readJsonlFile", () => {
 
   it("skips invalid lines and parses the rest", async () => {
     const valid = makeRecord({ id: "valid-1" });
-    const p = trackTemp();
+    const p = trackTemporary();
     await Bun.write(
       p,
-      `${JSON.stringify(valid)}\n{not valid json}\n${JSON.stringify(makeRecord({ id: "valid-2", commentId: 2 }))}`,
+      `${JSON.stringify(valid)}\n{not valid json}\n${JSON.stringify(makeRecord({ commentId: 2, id: "valid-2" }))}`,
     );
 
     const records = await readJsonlFile(p);
@@ -86,7 +87,7 @@ describe("readJsonlFile", () => {
   });
 
   it("returns empty array for non-existent file without throwing", async () => {
-    const p = join("/tmp", `nonexistent-${randomUUID()}.jsonl`);
+    const p = path.join("/tmp", `nonexistent-${randomUUID()}.jsonl`);
 
     const records = await readJsonlFile(p);
 
@@ -96,9 +97,9 @@ describe("readJsonlFile", () => {
 
 describe("writeJsonlFile", () => {
   it("round-trips records through write then read", async () => {
-    const r1 = makeRecord({ id: "rt-1", commentId: 1 });
-    const r2 = makeRecord({ id: "rt-2", commentId: 2, path: "src/bar.ts", line: 10 });
-    const p = trackTemp();
+    const r1 = makeRecord({ commentId: 1, id: "rt-1" });
+    const r2 = makeRecord({ commentId: 2, id: "rt-2", line: 10, path: "src/bar.ts" });
+    const p = trackTemporary();
 
     await writeJsonlFile(p, [r1, r2]);
     const records = await readJsonlFile(p);
@@ -108,7 +109,7 @@ describe("writeJsonlFile", () => {
 
   it("uses compact JSON with no extra whitespace", async () => {
     const record = makeRecord();
-    const p = trackTemp();
+    const p = trackTemporary();
 
     await writeJsonlFile(p, [record]);
 
@@ -122,7 +123,7 @@ describe("writeJsonlFile", () => {
 
 describe("appendJsonlRecord", () => {
   it("creates file if it does not exist", async () => {
-    const p = trackTemp();
+    const p = trackTemporary();
     const record = makeRecord({ id: "append-new" });
 
     await appendJsonlRecord(p, record);
@@ -133,11 +134,11 @@ describe("appendJsonlRecord", () => {
   });
 
   it("adds record to existing file", async () => {
-    const p = trackTemp();
-    const r1 = makeRecord({ id: "existing-1", commentId: 1 });
+    const p = trackTemporary();
+    const r1 = makeRecord({ commentId: 1, id: "existing-1" });
     await writeJsonlFile(p, [r1]);
 
-    const r2 = makeRecord({ id: "appended-2", commentId: 2 });
+    const r2 = makeRecord({ commentId: 2, id: "appended-2" });
     await appendJsonlRecord(p, r2);
 
     const records = await readJsonlFile(p);
