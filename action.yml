@@ -7,7 +7,7 @@ inputs:
     required: false
     default: coderabbitai[bot],github-copilot[bot]
   github-token:
-    description: GitHub token used for API reads and inbox-branch writes
+    description: GitHub token used for API reads and git-backed inbox-branch writes
     required: true
   inbox-branch:
     description: Dedicated inbox branch name
@@ -31,6 +31,15 @@ runs:
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Configure git authentication
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        GITHUB_TOKEN_FOR_PUSH: ${{ inputs.github-token }}
+      run: |
+        AUTH_HEADER=$(printf "x-access-token:%s" "$GITHUB_TOKEN_FOR_PUSH" | base64 | tr -d '\n')
+        git config http.https://github.com/.extraheader "AUTHORIZATION: basic $AUTH_HEADER"
 
     - name: Run ingestion
       shell: bash
