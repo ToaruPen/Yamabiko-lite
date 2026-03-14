@@ -346,13 +346,52 @@ describe("ensureInboxBranch", () => {
 });
 
 describe("fetchInboxBranch", () => {
-  it("ignores missing remote branch fetch failures", async () => {
-    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
-      () =>
-        createMockSubprocess("", 128, "fatal: couldn't find remote ref refs/heads/inbox") as any,
-    );
+  it("deletes the local ref when the remote branch is missing", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("fetch")) {
+        return createMockSubprocess(
+          "",
+          128,
+          "fatal: couldn't find remote ref refs/heads/inbox",
+        ) as any;
+      }
+
+      if (commandArguments.includes("update-ref")) {
+        return createMockSubprocess("", 0) as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
 
     await expect(fetchInboxBranch("inbox")).resolves.toBeUndefined();
+    const deleteReferenceCall = spawnMock.mock.calls.find((callArguments: any) =>
+      callArguments[0]?.includes?.("update-ref"),
+    );
+    expect(deleteReferenceCall).toBeDefined();
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws when deleting a stale local ref fails", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("fetch")) {
+        return createMockSubprocess(
+          "",
+          128,
+          "fatal: couldn't find remote ref refs/heads/inbox",
+        ) as any;
+      }
+
+      if (commandArguments.includes("update-ref")) {
+        return createMockSubprocess("", 1, "fatal: could not delete reference") as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
+
+    await expect(fetchInboxBranch("inbox")).rejects.toThrow(
+      "git update-ref failed (exit 1): fatal: could not delete reference",
+    );
 
     spawnMock.mockRestore();
   });

@@ -96,7 +96,12 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
 export async function fetchInboxBranch(branchName: string): Promise<void> {
   const { exitCode, stderr } = await runGit(["fetch", "origin", `+${branchName}:${branchName}`]);
 
-  if (exitCode === 0 || isMissingRemoteBranchError(exitCode, stderr)) {
+  if (exitCode === 0) {
+    return;
+  }
+
+  if (isMissingRemoteBranchError(exitCode, stderr)) {
+    await deleteLocalBranchReference(branchName);
     return;
   }
 
@@ -152,6 +157,16 @@ async function addWorktree(worktreePath: string, branchName: string): Promise<vo
   if (exitCode !== 0) {
     throw new Error(`git worktree add failed (exit ${String(exitCode)}): ${stderr}`);
   }
+}
+
+async function deleteLocalBranchReference(branchName: string): Promise<void> {
+  const { exitCode, stderr } = await runGit(["update-ref", "-d", `refs/heads/${branchName}`]);
+
+  if (exitCode === 0 || stderr.includes("cannot lock ref") || stderr.includes("reference broken")) {
+    return;
+  }
+
+  throw new Error(`git update-ref failed (exit ${String(exitCode)}): ${stderr}`);
 }
 
 async function fetchBranch(branchName: string): Promise<void> {
