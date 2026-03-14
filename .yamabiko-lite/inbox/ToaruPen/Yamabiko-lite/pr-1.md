@@ -1,6 +1,6 @@
 # Inbox Summary: ToaruPen/Yamabiko-lite PR #1
 
-**33** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
+**39** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
@@ -37,3 +37,9 @@
 | pending | github-pull_request_review_comment-2934934323 | coderabbitai[bot] | src/reconciler/reconcile.ts:97 | _⚠️ Potential issue_ \| _🟡 Minor_  **AbortError (タイムアウト) が再試行対象に含まれていません**  `isT... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934934323) |
 | pending | github-issue_comment-4059995144 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> <details> <summary>✅ Acti... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4059995144) |
 | pending | github-issue_comment-4060126081 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> <details> <summary>✅ Acti... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4060126081) |
+| pending | github-pull_request_review-3948523351 | coderabbitai[bot] |  | **Actionable comments posted: 4**  <details> <summary>🤖 Prompt for all review c... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948523351) |
+| pending | github-pull_request_review_comment-2935013556 | coderabbitai[bot] | src/actions/branch.test.ts:66 | _⚠️ Potential issue_ \| _🟡 Minor_  **Promise マッチャーに `await` がありません。**  このテストは `e... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2935013556) |
+| pending | github-pull_request_review_comment-2935013558 | coderabbitai[bot] | src/actions/branch.test.ts:132 | _⚠️ Potential issue_ \| _🟡 Minor_  **複数のテストで Promise マッチャーに `await` がありません。**  以... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2935013558) |
+| pending | github-pull_request_review_comment-2935013563 | coderabbitai[bot] | src/actions/branch.test.ts:344 | _⚠️ Potential issue_ \| _🟡 Minor_  **ensureInboxBranch のエラーテストにも同じ問題があります。**  以下... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2935013563) |
+| pending | github-pull_request_review_comment-2935013565 | coderabbitai[bot] | src/actions/branch.test.ts:375 | _⚠️ Potential issue_ \| _🟡 Minor_  **cleanupWorktree のエラーテストにも `await` が必要です。** ... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2935013565) |
+| pending | github-issue_comment-4060132116 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> <details> <summary>✅ Acti... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4060132116) |
