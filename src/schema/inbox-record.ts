@@ -108,10 +108,19 @@ export function parseInboxRecords(jsonlContent: string): InboxRecord[] {
 
     const issues = result.issues
       .map((issue) => {
-        const key = issue.path?.[0]?.key;
-        return typeof key === "string" ? key : issue.message;
+        const pathString = issue.path
+          ?.map((segment) => {
+            if (typeof segment.key === "string") return segment.key;
+            if (typeof segment.key === "number") return `[${segment.key.toString()}]`;
+            return segment.type;
+          })
+          .join(".");
+        if (pathString) {
+          return `${pathString}: ${issue.message}`;
+        }
+        return issue.message || JSON.stringify(issue);
       })
-      .join(", ");
+      .join("; ");
 
     console.warn(`[inbox-record] Skipping invalid record on line ${String(index + 1)}: ${issues}`);
   }

@@ -66,13 +66,19 @@ export async function readFileFromBranch(
   branchName: string,
   filePath: string,
 ): Promise<null | string> {
-  const { exitCode, stdout } = await runGit(["show", `${branchName}:${filePath}`], {
+  const { exitCode, stderr, stdout } = await runGit(["show", `${branchName}:${filePath}`], {
     trimStdout: false,
   });
 
   if (exitCode === 128) {
     // eslint-disable-next-line unicorn/no-null -- API contract: null signals missing file
     return null;
+  }
+
+  if (exitCode !== 0) {
+    throw new Error(
+      `git show failed (exit ${String(exitCode)}): ${stdout || stderr}`,
+    );
   }
 
   return stdout;

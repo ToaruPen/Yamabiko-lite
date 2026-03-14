@@ -33,15 +33,17 @@ interface ReconcileResult {
 }
 
 export async function reconcilePullRequest(options: ReconcileOptions): Promise<ReconcileResult> {
-  const reviews = await withRetry(() =>
-    fetchPullRequestReviews(options.owner, options.repo, options.prNumber, options.token),
-  );
-  const reviewComments = await withRetry(() =>
-    fetchPullRequestComments(options.owner, options.repo, options.prNumber, options.token),
-  );
-  const issueComments = await withRetry(() =>
-    fetchIssueComments(options.owner, options.repo, options.prNumber, options.token),
-  );
+  const [reviews, reviewComments, issueComments] = await Promise.all([
+    withRetry(() =>
+      fetchPullRequestReviews(options.owner, options.repo, options.prNumber, options.token),
+    ),
+    withRetry(() =>
+      fetchPullRequestComments(options.owner, options.repo, options.prNumber, options.token),
+    ),
+    withRetry(() =>
+      fetchIssueComments(options.owner, options.repo, options.prNumber, options.token),
+    ),
+  ]);
 
   const incoming = [
     ...normalizeReviews(reviews, options),
@@ -77,6 +79,8 @@ function countChanges(
     }
   }
 
+  // unchanged = existing records that were not updated.
+  // Added records are new (not in existingById) so they don't affect this count.
   return { added, unchanged: existingRecords.length - updated, updated };
 }
 
@@ -170,18 +174,18 @@ function toGitHubUser(user: { id: number; login: string; type: string }): GitHub
 }
 
 async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
-  let lastError: unknown;
+  let lastError: Error | undefined;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       return await operation();
     } catch (error) {
-      lastError = error;
+      lastError = error instanceof Error ? error : new Error(String(error));
       if (attempt === 3 || !isTransientError(error)) {
-        throw error;
+        throw lastError;
       }
       await Bun.sleep(1000);
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error("Unknown retry failure");
+  throw lastError ?? new Error("Unknown retry failure");
 }
