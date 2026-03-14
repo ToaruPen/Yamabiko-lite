@@ -1,4 +1,5 @@
 import { defineCommand } from "citty";
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
 import type { InboxRecord } from "../../schema/inbox-record.ts";
@@ -67,6 +68,7 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
     updatedRecords[recordIndex] = updatedRecord;
 
     const worktreeJsonlPath = path.join(worktreePath, jsonlPath);
+    await mkdir(path.dirname(worktreeJsonlPath), { recursive: true });
     await writeJsonlFile(worktreeJsonlPath, updatedRecords);
 
     const markdown = generateMarkdownSummary(updatedRecords, prNumber, {
@@ -74,6 +76,7 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
       owner,
     });
     const worktreeMdPath = path.join(worktreePath, mdPath);
+    await mkdir(path.dirname(worktreeMdPath), { recursive: true });
     await Bun.write(worktreeMdPath, markdown);
 
     await commitAndPushInbox(
