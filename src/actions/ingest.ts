@@ -33,18 +33,18 @@ export interface IngestOptions {
   token: string;
 }
 
-export interface IngestResult {
-  added: number;
-  totalRecords: number;
-  unchanged: number;
-  updated: number;
-}
-
 interface IngestContext {
   owner: string;
   prNumber: number;
   repo: string;
   reviewHeadSha?: string;
+}
+
+interface IngestResult {
+  added: number;
+  totalRecords: number;
+  unchanged: number;
+  updated: number;
 }
 
 type ResolvedIngestDeps = Required<IngestDeps>;
@@ -70,37 +70,15 @@ export async function ingest(options: IngestOptions, deps: IngestDeps = {}): Pro
   }
 }
 
-export async function main(): Promise<void> {
-  const eventType = process.env["GITHUB_EVENT_NAME"];
-  const eventPath = process.env["GITHUB_EVENT_PATH"];
-  const token = process.env["GITHUB_TOKEN"];
-
-  if (!eventType || !eventPath || !token) {
-    throw new Error(
-      "Missing required env vars: GITHUB_EVENT_NAME, GITHUB_EVENT_PATH, GITHUB_TOKEN",
-    );
-  }
-
-  const allowlist = parseBotAllowlist(
-    process.env["BOT_ALLOWLIST"] ?? DEFAULT_BOT_ALLOWLIST.join(","),
-  );
-  const eventPayload = (await Bun.file(eventPath).json()) as unknown;
-  const result = await ingest({
-    allowlist,
-    branchName: "yamabiko-lite-inbox",
-    eventPayload,
-    eventType,
-    token,
-  });
-
-  console.log(JSON.stringify(result));
-}
-
 function asObject(value: unknown): Record<string, unknown> {
   if (typeof value === "object" && value !== null) {
     return value as Record<string, unknown>;
   }
   throw new TypeError("Invalid event payload: object expected");
+}
+
+function emptyResult(): IngestResult {
+  return { added: 0, totalRecords: 0, unchanged: 0, updated: 0 };
 }
 
 if (import.meta.main) {
@@ -111,10 +89,6 @@ if (import.meta.main) {
     console.error(message);
     process.exitCode = 1;
   }
-}
-
-function emptyResult(): IngestResult {
-  return { added: 0, totalRecords: 0, unchanged: 0, updated: 0 };
 }
 
 function extractContext(eventType: string, eventPayload: unknown): IngestContext | undefined {
@@ -149,6 +123,33 @@ function extractContext(eventType: string, eventPayload: unknown): IngestContext
   }
 
   throw new Error(`Unsupported event type: ${eventType}`);
+}
+
+async function main(): Promise<void> {
+  const eventType = process.env["GITHUB_EVENT_NAME"];
+  const eventPath = process.env["GITHUB_EVENT_PATH"];
+  const inboxBranch = process.env["INBOX_BRANCH"] ?? "yamabiko-lite-inbox";
+  const token = process.env["GITHUB_TOKEN"];
+
+  if (!eventType || !eventPath || !token) {
+    throw new Error(
+      "Missing required env vars: GITHUB_EVENT_NAME, GITHUB_EVENT_PATH, GITHUB_TOKEN",
+    );
+  }
+
+  const allowlist = parseBotAllowlist(
+    process.env["BOT_ALLOWLIST"] ?? DEFAULT_BOT_ALLOWLIST.join(","),
+  );
+  const eventPayload = (await Bun.file(eventPath).json()) as unknown;
+  const result = await ingest({
+    allowlist,
+    branchName: inboxBranch,
+    eventPayload,
+    eventType,
+    token,
+  });
+
+  console.log(JSON.stringify(result));
 }
 
 function resolveIngestDeps(deps: IngestDeps): ResolvedIngestDeps {
