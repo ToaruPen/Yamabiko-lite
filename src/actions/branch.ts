@@ -50,21 +50,27 @@ export async function commitAndPushInbox(
   }
 
   const maxAttempts = 3;
+  let lastPushStderr = "";
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const { exitCode: pushExitCode } = await runGit(["push", "origin", branchName], {
-      workingDirectory: worktreePath,
-    });
+    const { exitCode: pushExitCode, stderr: pushStderr } = await runGit(
+      ["push", "origin", branchName],
+      { workingDirectory: worktreePath },
+    );
 
     if (pushExitCode === 0) {
       return true;
     }
+
+    lastPushStderr = pushStderr;
 
     if (attempt < maxAttempts) {
       await Bun.sleep(1000);
     }
   }
 
-  throw new Error(`Push to ${branchName} failed after ${String(maxAttempts)} attempts`);
+  throw new Error(
+    `Push to ${branchName} failed after ${String(maxAttempts)} attempts: ${lastPushStderr}`,
+  );
 }
 
 export async function ensureInboxBranch(branchName: string): Promise<string> {
@@ -83,7 +89,7 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
     const { exitCode: fetchExitCode, stderr: fetchStderr } = await runGit([
       "fetch",
       "origin",
-      `${branchName}:${branchName}`,
+      `+${branchName}:${branchName}`,
     ]);
 
     if (fetchExitCode !== 0) {
@@ -145,7 +151,7 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
 
 export async function fetchInboxBranch(branchName: string): Promise<void> {
   // Silently ignore failures — branch may not exist on remote yet
-  await runGit(["fetch", "origin", `${branchName}:${branchName}`]);
+  await runGit(["fetch", "origin", `+${branchName}:${branchName}`]);
 }
 
 export async function readFileFromBranch(

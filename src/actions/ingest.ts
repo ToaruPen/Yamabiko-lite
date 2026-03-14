@@ -107,7 +107,13 @@ export async function ingest(options: IngestOptions, deps: IngestDeps = {}): Pro
       updated: reconciled.updated,
     };
   } finally {
-    await cleanupWorktree(worktreePath);
+    try {
+      await cleanupWorktree(worktreePath);
+    } catch (cleanupError: unknown) {
+      const cleanupMessage =
+        cleanupError instanceof Error ? cleanupError.message : String(cleanupError);
+      console.error(`Warning: worktree cleanup failed: ${cleanupMessage}`);
+    }
   }
 }
 

@@ -18,11 +18,14 @@ interface ListOptions {
 export async function listInboxItems(options: ListOptions): Promise<void> {
   const { name, owner } = parseRepo(options.repo);
   const records = await readInboxFromBranch(options.branch, options.repo, options.pr);
-  const headSha = await getCurrentHeadSha();
 
-  const filtered = options.includeStale
-    ? records
-    : records.filter((r) => r.status !== "stale" && r.headSha === headSha);
+  let filtered: InboxRecord[];
+  if (options.includeStale) {
+    filtered = records;
+  } else {
+    const headSha = await getCurrentHeadSha();
+    filtered = records.filter((r) => r.status !== "stale" && r.headSha === headSha);
+  }
 
   if (options.json) {
     console.log(JSON.stringify(filtered, undefined, 2));
