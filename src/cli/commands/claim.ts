@@ -63,6 +63,18 @@ async function claimInboxItem(options: ClaimOptions): Promise<string> {
     const content = await readFileFromBranch(branch, jsonlRelativePath);
     const records = content ? parseInboxRecords(content) : [];
 
+    const rawLineCount = content
+      ? content
+          .trim()
+          .split("\n")
+          .filter((line) => line.trim() !== "").length
+      : 0;
+    if (records.length < rawLineCount) {
+      throw new Error(
+        `JSONL integrity check failed: parsed ${String(records.length)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
+      );
+    }
+
     const { message, updatedRecords } = applyClaimToRecords(records, id);
 
     const jsonlFullPath = path.join(worktreePath, jsonlRelativePath);
@@ -79,7 +91,13 @@ async function claimInboxItem(options: ClaimOptions): Promise<string> {
     console.log(message);
     return message;
   } finally {
-    await cleanupWorktree(worktreePath);
+    try {
+      await cleanupWorktree(worktreePath);
+    } catch (cleanupError: unknown) {
+      const cleanupMessage =
+        cleanupError instanceof Error ? cleanupError.message : String(cleanupError);
+      console.error(`Warning: worktree cleanup failed: ${cleanupMessage}`);
+    }
   }
 }
 

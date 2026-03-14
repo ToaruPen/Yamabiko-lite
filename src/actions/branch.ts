@@ -103,19 +103,40 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
       );
     }
   } else {
-    const { exitCode: orphanExitCode, stderr: orphanStderr } = await runGit([
-      "worktree",
-      "add",
-      "--orphan",
-      "-b",
-      branchName,
-      worktreePath,
+    const { exitCode: localExitCode } = await runGit([
+      "rev-parse",
+      "--verify",
+      `refs/heads/${branchName}`,
     ]);
 
-    if (orphanExitCode !== 0) {
-      throw new Error(
-        `git worktree add --orphan failed (exit ${String(orphanExitCode)}): ${orphanStderr}`,
-      );
+    if (localExitCode === 0) {
+      const { exitCode: worktreeExitCode, stderr: worktreeStderr } = await runGit([
+        "worktree",
+        "add",
+        worktreePath,
+        branchName,
+      ]);
+
+      if (worktreeExitCode !== 0) {
+        throw new Error(
+          `git worktree add failed (exit ${String(worktreeExitCode)}): ${worktreeStderr}`,
+        );
+      }
+    } else {
+      const { exitCode: orphanExitCode, stderr: orphanStderr } = await runGit([
+        "worktree",
+        "add",
+        "--orphan",
+        "-b",
+        branchName,
+        worktreePath,
+      ]);
+
+      if (orphanExitCode !== 0) {
+        throw new Error(
+          `git worktree add --orphan failed (exit ${String(orphanExitCode)}): ${orphanStderr}`,
+        );
+      }
     }
   }
 
@@ -154,12 +175,17 @@ async function runGit(
   gitArguments: string[],
   options?: { trimStdout?: boolean; workingDirectory?: string },
 ): Promise<{ exitCode: number; stderr: string; stdout: string }> {
-  const subprocess = Bun.spawn(
-    ["git", ...gitArguments],
-    options?.workingDirectory
-      ? { cwd: options.workingDirectory, stderr: "pipe", stdout: "pipe" }
-      : { stderr: "pipe", stdout: "pipe" },
-  );
+  const spawnOptions: Record<string, unknown> = {
+    env: { ...process.env, LC_ALL: "C" },
+    stderr: "pipe",
+    stdout: "pipe",
+  };
+
+  if (options?.workingDirectory) {
+    spawnOptions["cwd"] = options.workingDirectory;
+  }
+
+  const subprocess = Bun.spawn(["git", ...gitArguments], spawnOptions);
 
   const [stderrText, stdoutText, exitCode] = await Promise.all([
     new Response(subprocess.stderr).text(),

@@ -88,6 +88,7 @@ function countChanges(
 function isTransientError(error: unknown): boolean {
   if (error instanceof TypeError) return true;
   if (!(error instanceof Error)) return false;
+  if (error.name === "AbortError") return true;
 
   return (
     /GitHub API error:\s*5\d\d/.test(error.message) ||
@@ -184,6 +185,7 @@ function toGitHubUser(user: { id: number; login: string; type: string }): GitHub
 }
 
 async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
+  const baseDelayMilliseconds = 1000;
   let lastError: Error | undefined;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -193,7 +195,7 @@ async function withRetry<T>(operation: () => Promise<T>): Promise<T> {
       if (attempt === 3 || !isTransientError(error)) {
         throw lastError;
       }
-      await Bun.sleep(1000);
+      await Bun.sleep(baseDelayMilliseconds * 2 ** (attempt - 1));
     }
   }
 

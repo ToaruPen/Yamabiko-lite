@@ -187,6 +187,11 @@ describe("ensureInboxBranch", () => {
       if (commandArguments.includes("ls-remote")) {
         return createMockSubprocess("", 0) as any;
       }
+
+      if (commandArguments.includes("rev-parse")) {
+        return createMockSubprocess("", 1) as any;
+      }
+
       return createMockSubprocess("", 0) as any;
     });
 
@@ -197,6 +202,37 @@ describe("ensureInboxBranch", () => {
       callArguments[0]?.includes?.("--orphan"),
     );
     expect(orphanCall).toBeDefined();
+
+    spawnMock.mockRestore();
+  });
+
+  it("reuses local branch when remote does not exist but local does", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("ls-remote")) {
+        return createMockSubprocess("", 0) as any;
+      }
+
+      if (commandArguments.includes("rev-parse")) {
+        return createMockSubprocess("abc123", 0) as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
+
+    const result = await ensureInboxBranch("yamabiko/inbox");
+
+    expect(result).toMatch(/yamabiko-inbox-/);
+    const worktreeCall = spawnMock.mock.calls.find(
+      (callArguments: any) =>
+        callArguments[0]?.includes?.("worktree") &&
+        callArguments[0]?.includes?.("add") &&
+        !callArguments[0]?.includes?.("--orphan"),
+    );
+    expect(worktreeCall).toBeDefined();
+    const orphanCall = spawnMock.mock.calls.find((callArguments: any) =>
+      callArguments[0]?.includes?.("--orphan"),
+    );
+    expect(orphanCall).toBeUndefined();
 
     spawnMock.mockRestore();
   });
@@ -287,6 +323,10 @@ describe("ensureInboxBranch", () => {
     const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
       if (commandArguments.includes("ls-remote")) {
         return createMockSubprocess("", 0) as any;
+      }
+
+      if (commandArguments.includes("rev-parse")) {
+        return createMockSubprocess("", 1) as any;
       }
 
       if (commandArguments.includes("worktree") && commandArguments.includes("--orphan")) {

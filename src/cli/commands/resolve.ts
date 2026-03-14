@@ -46,6 +46,18 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
     const content = await readFileFromBranch(arguments_.branch, jsonlPath);
     const records: InboxRecord[] = content ? parseInboxRecords(content) : [];
 
+    const rawLineCount = content
+      ? content
+          .trim()
+          .split("\n")
+          .filter((line) => line.trim() !== "").length
+      : 0;
+    if (records.length < rawLineCount) {
+      throw new Error(
+        `JSONL integrity check failed: parsed ${String(records.length)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
+      );
+    }
+
     const recordIndex = records.findIndex((r) => r.id === arguments_.id);
     if (recordIndex === -1) {
       throw new Error(`Item not found: ${arguments_.id}`);
@@ -87,7 +99,13 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
 
     return `Resolved: ${arguments_.id} (${oldStatus} → ${resolveStatus})`;
   } finally {
-    await cleanupWorktree(worktreePath);
+    try {
+      await cleanupWorktree(worktreePath);
+    } catch (cleanupError: unknown) {
+      const cleanupMessage =
+        cleanupError instanceof Error ? cleanupError.message : String(cleanupError);
+      console.error(`Warning: worktree cleanup failed: ${cleanupMessage}`);
+    }
   }
 }
 

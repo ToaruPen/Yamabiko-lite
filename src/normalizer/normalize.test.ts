@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 
+import type { TimeProvider } from "./normalize";
 import type {
   IssueCommentEvent,
   PullRequestReviewCommentEvent,
@@ -15,6 +16,7 @@ import {
 } from "./normalize";
 
 const providedHeadSha = "9999999999999999999999999999999999999999";
+const fixedNow: TimeProvider = () => "2026-03-14T00:00:00Z";
 
 function loadFixture<T>(name: string): T {
   const fileUrl = new URL(`__fixtures__/${name}`, import.meta.url);
@@ -29,7 +31,7 @@ const issueCommentFixture = loadFixture<IssueCommentEvent>("issue-comment.json")
 
 describe("normalizeReviewEvent", () => {
   it("maps pull_request_review into InboxRecord", () => {
-    const record = normalizeReviewEvent(reviewFixture);
+    const record = normalizeReviewEvent(reviewFixture, fixedNow);
 
     expect(record).toMatchObject({
       body: "Please simplify this branch and avoid duplicate parsing.",
@@ -59,7 +61,7 @@ describe("normalizeReviewEvent", () => {
 
 describe("normalizeReviewCommentEvent", () => {
   it("maps pull_request_review_comment into InboxRecord with path and line", () => {
-    const record = normalizeReviewCommentEvent(reviewCommentFixture);
+    const record = normalizeReviewCommentEvent(reviewCommentFixture, fixedNow);
 
     expect(record).toMatchObject({
       body: "Inline: this branch is duplicated and can be flattened.",
@@ -84,7 +86,7 @@ describe("normalizeReviewCommentEvent", () => {
 
 describe("normalizeIssueCommentEvent", () => {
   it("maps issue_comment into InboxRecord with provided headSha", () => {
-    const record = normalizeIssueCommentEvent(issueCommentFixture, providedHeadSha);
+    const record = normalizeIssueCommentEvent(issueCommentFixture, providedHeadSha, fixedNow);
 
     expect(record).toMatchObject({
       body: "General PR note: simplify this conditional and add coverage.",
@@ -141,9 +143,57 @@ describe("normalizeEvent", () => {
   });
 
   it("uses server-provided timestamps for reviews", () => {
-    const record = normalizeEvent("pull_request_review", reviewFixture);
+    const record = normalizeEvent("pull_request_review", reviewFixture, undefined, fixedNow);
 
     expect(record?.createdAt).toBe("2026-03-14T00:00:00Z");
     expect(record?.updatedAt).toBe("2026-03-14T00:00:00Z");
+  });
+
+  it("uses injected time provider when timestamps are missing", () => {
+    const issueCommentWithoutTimestamps = structuredClone(issueCommentFixture);
+    delete issueCommentWithoutTimestamps.comment.created_at;
+    delete issueCommentWithoutTimestamps.comment.updated_at;
+
+    const reviewCommentWithoutTimestamps = structuredClone(reviewCommentFixture);
+    delete reviewCommentWithoutTimestamps.comment.created_at;
+    delete reviewCommentWithoutTimestamps.comment.updated_at;
+
+    const reviewWithoutSubmittedAt = structuredClone(reviewFixture);
+    // eslint-disable-next-line unicorn/no-null
+    reviewWithoutSubmittedAt.review.submitted_at = null;
+
+    const issueCommentRecord = normalizeEvent(
+      "issue_comment",
+      issueCommentWithoutTimestamps,
+      providedHeadSha,
+      fixedNow,
+    );
+    const reviewCommentRecord = normalizeEvent(
+      "pull_request_review_comment",
+      reviewCommentWithoutTimestamps,
+      undefined,
+      fixedNow,
+    );
+    const reviewRecord = normalizeEvent(
+      "pull_request_review",
+      reviewWithoutSubmittedAt,
+      undefined,
+      fixedNow,
+    );
+
+    expect(issueCommentRecord?.createdAt).toBe("2026-03-14T00:00:00Z");
+    expect(issueCommentRecord?.updatedAt).toBe("2026-03-14T00:00:00Z");
+    expect(reviewCommentRecord?.createdAt).toBe("2026-03-14T00:00:00Z");
+    expect(reviewCommentRecord?.updatedAt).toBe("2026-03-14T00:00:00Z");
+    expect(reviewRecord?.createdAt).toBe("2026-03-14T00:00:00Z");
+    expect(reviewRecord?.updatedAt).toBe("2026-03-14T00:00:00Z");
+  });
+
+  it("returns null when payload validation fails", () => {
+    const invalidIssuePayload = { comment: { body: "ok", id: 1 } };
+
+    expect(
+      normalizeEvent("issue_comment", invalidIssuePayload, providedHeadSha, fixedNow),
+    ).toBeNull();
   });
 });

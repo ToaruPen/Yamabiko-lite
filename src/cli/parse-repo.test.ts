@@ -52,33 +52,35 @@ describe("inferRepoFromRemote", () => {
     spawnMock = undefined;
   });
 
-  it("extracts owner/repo from https origin URL", () => {
+  it("extracts owner/repo from https origin URL", async () => {
     spawnMock = spyOn(Bun, "spawn").mockImplementation(
       () => createMockSubprocess("https://github.com/example/project.git\n", 0) as any,
     );
 
-    expect(inferRepoFromRemote()).resolves.toBe("example/project");
+    await (expect(inferRepoFromRemote()).resolves.toBe(
+      "example/project",
+    ) as unknown as Promise<void>);
 
     expect(spawnMock).toHaveBeenCalledTimes(1);
   });
 
-  it("throws when git remote get-url fails", () => {
+  it("throws when git remote get-url fails", async () => {
     spawnMock = spyOn(Bun, "spawn").mockImplementation(
       () => createMockSubprocess("", 2, "fatal: not a git repository") as any,
     );
 
-    expect(inferRepoFromRemote()).rejects.toThrow(
+    await (expect(inferRepoFromRemote()).rejects.toThrow(
       "Failed to infer repository from origin remote: fatal: not a git repository",
-    );
+    ) as unknown as Promise<void>);
   });
 
-  it("throws when remote URL cannot be parsed", () => {
+  it("throws when remote URL cannot be parsed", async () => {
     spawnMock = spyOn(Bun, "spawn").mockImplementation(
       () => createMockSubprocess("origin\n", 0) as any,
     );
 
-    expect(inferRepoFromRemote()).rejects.toThrow(
+    await (expect(inferRepoFromRemote()).rejects.toThrow(
       "Cannot parse repository from remote URL: origin",
-    );
+    ) as unknown as Promise<void>);
   });
 });
