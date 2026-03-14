@@ -2,10 +2,10 @@
 set -eu
 
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-ENTRY="$ROOT_DIR/dist/main.js"
+ENTRY="$ROOT_DIR/src/cli/main.ts"
 
 if [ ! -f "$ENTRY" ]; then
-  ENTRY="$ROOT_DIR/src/cli/main.ts"
+  ENTRY="$ROOT_DIR/dist/main.js"
 fi
 
 exec sh "$ROOT_DIR/scripts/bun-exec.sh" "$ENTRY" "$@"
