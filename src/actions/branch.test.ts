@@ -329,6 +329,31 @@ describe("ensureInboxBranch", () => {
     spawnMock.mockRestore();
   });
 
+  it("continues when worktree prune fails", async () => {
+    const errorMock = spyOn(console, "error").mockImplementation(() => void 0);
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("worktree") && commandArguments.includes("prune")) {
+        return createMockSubprocess("", 1, "fatal: prune failed") as any;
+      }
+
+      if (commandArguments.includes("ls-remote")) {
+        return createMockSubprocess("abc123\trefs/heads/yamabiko/inbox\n", 0) as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
+
+    const result = await ensureInboxBranch("yamabiko/inbox");
+
+    expect(result).toMatch(/yamabiko-inbox-/);
+    expect(errorMock).toHaveBeenCalledWith(
+      "Warning: inbox worktree prune failed: git worktree prune failed (exit 1): fatal: prune failed",
+    );
+
+    errorMock.mockRestore();
+    spawnMock.mockRestore();
+  });
+
   it("throws when git ls-remote exits non-zero", async () => {
     const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
       if (commandArguments.includes("ls-remote")) {

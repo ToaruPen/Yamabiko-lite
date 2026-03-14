@@ -77,7 +77,12 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
   const suffix = `${String(Date.now())}-${Math.random().toString(36).slice(2, 10)}`;
   const worktreePath = path.join(tmpdir(), `yamabiko-inbox-${suffix}`);
 
-  await pruneStaleWorktrees();
+  try {
+    await pruneStaleWorktrees();
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Warning: inbox worktree prune failed: ${message}`);
+  }
 
   const remoteExists = await remoteBranchExists(branchName);
 
