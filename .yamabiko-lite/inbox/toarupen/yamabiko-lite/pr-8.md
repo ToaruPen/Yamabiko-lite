@@ -1,6 +1,6 @@
 # Inbox Summary: toarupen/yamabiko-lite PR #8
 
-**16** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
+**18** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
@@ -20,3 +20,5 @@
 | pending | github-pull_request_review-3948925818 | coderabbitai[bot] |  |   <details> <summary>♻️ Duplicate comments (2)</summary><blockquote>  <details> ... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/8#pullrequestreview-3948925818) |
 | pending | github-issue_comment-4060682228 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> `@ToaruPen` Thanks for th... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/8#issuecomment-4060682228) |
 | pending | github-pull_request_review-3948937063 | coderabbitai[bot] |  |   <details> <summary>🧹 Nitpick comments (2)</summary><blockquote>  <details> <s... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/8#pullrequestreview-3948937063) |
+| pending | github-pull_request_review-3948944851 | coderabbitai[bot] |  |   <details> <summary>🧹 Nitpick comments (1)</summary><blockquote>  <details> <s... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/8#pullrequestreview-3948944851) |
+| pending | github-issue_comment-4060698352 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> `@ToaruPen` Thanks for th... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/8#issuecomment-4060698352) |
