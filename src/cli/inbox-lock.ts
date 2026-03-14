@@ -1,3 +1,5 @@
+import type { PathLike } from "node:fs";
+
 import { mkdir, open, readFile, rm } from "node:fs/promises";
 import { hostname as getHostname } from "node:os";
 import path from "node:path";
@@ -8,6 +10,9 @@ interface InboxLockDeps {
   getPid?: () => number;
   isProcessAlive?: (pid: number) => boolean;
   logWarning?: (message: string) => void;
+  openLockFile?: (path: PathLike, flags?: number | string) => Promise<LockHandle>;
+  readLockFile?: typeof readFile;
+  removeLockFile?: typeof rm;
   sleep?: (milliseconds: number) => Promise<void>;
 }
 
@@ -18,10 +23,27 @@ interface InboxMutationTarget {
   repo: string;
 }
 
+interface LockHandle {
+  close: () => Promise<void>;
+  writeFile: (data: string) => Promise<unknown>;
+}
+
 interface LockMetadata {
   hostname: string;
   pid: number;
   token: string;
+}
+
+interface ResolvedInboxLockDeps {
+  getGitCommonDirectory: () => Promise<string>;
+  getHostname: () => string;
+  getPid: () => number;
+  isProcessAlive: (pid: number) => boolean;
+  logWarning: (message: string) => void;
+  openLockFile: (path: PathLike, flags?: number | string) => Promise<LockHandle>;
+  readLockFile: typeof readFile;
+  removeLockFile: typeof rm;
+  sleep: (milliseconds: number) => Promise<void>;
 }
 
 const LOCK_ACQUIRE_ATTEMPTS = 3;
@@ -32,21 +54,13 @@ export async function withInboxMutationLock<T>(
   operation: () => Promise<T>,
   deps: InboxLockDeps = {},
 ): Promise<T> {
-  const gitCommonDirectory = await (deps.getGitCommonDirectory ?? getGitCommonDirectory)();
-  const currentHostname = (deps.getHostname ?? getHostname)();
-  const currentPid = (deps.getPid ?? ((): number => process.pid))();
-  const isProcessAlive = deps.isProcessAlive ?? defaultIsProcessAlive;
-  const logWarning =
-    deps.logWarning ??
-    ((message: string): void => {
-      console.error(message);
-    });
-  const sleep = deps.sleep ?? defaultSleep;
+  const resolvedDeps = resolveInboxLockDeps(deps);
+  const gitCommonDirectory = await resolvedDeps.getGitCommonDirectory();
   const lockDirectory = path.join(gitCommonDirectory, "yamabiko-lite", "locks");
   const lockPath = path.join(lockDirectory, buildLockFileName(target));
   const metadata: LockMetadata = {
-    hostname: currentHostname,
-    pid: currentPid,
+    hostname: resolvedDeps.getHostname(),
+    pid: resolvedDeps.getPid(),
     token: crypto.randomUUID(),
   };
 
@@ -56,8 +70,11 @@ export async function withInboxMutationLock<T>(
     lockPath,
     metadata,
     target,
-    isProcessAlive,
-    sleep,
+    resolvedDeps.isProcessAlive,
+    resolvedDeps.openLockFile,
+    resolvedDeps.readLockFile,
+    resolvedDeps.removeLockFile,
+    resolvedDeps.sleep,
   );
 
   let operationError: unknown;
@@ -68,7 +85,15 @@ export async function withInboxMutationLock<T>(
     operationError = error;
     throw error;
   } finally {
-    await releaseInboxMutationLock(lockHandle, lockPath, metadata, logWarning, operationError);
+    await releaseInboxMutationLock(
+      lockHandle,
+      lockPath,
+      metadata,
+      resolvedDeps.logWarning,
+      operationError,
+      resolvedDeps.readLockFile,
+      resolvedDeps.removeLockFile,
+    );
   }
 }
 
@@ -77,19 +102,35 @@ async function acquireInboxMutationLock(
   metadata: LockMetadata,
   target: InboxMutationTarget,
   isProcessAlive: (pid: number) => boolean,
+  openLockFile: (path: PathLike, flags?: number | string) => Promise<LockHandle>,
+  readLockFile: typeof readFile,
+  removeLockFile: typeof rm,
   sleep: (milliseconds: number) => Promise<void>,
-): Promise<Awaited<ReturnType<typeof open>>> {
+): Promise<LockHandle> {
   for (let attempt = 0; attempt < LOCK_ACQUIRE_ATTEMPTS; attempt++) {
+    let lockHandle: LockHandle | undefined;
     try {
-      const lockHandle = await open(lockPath, "wx");
+      lockHandle = await openLockFile(lockPath, "wx");
       await lockHandle.writeFile(JSON.stringify(metadata));
       return lockHandle;
     } catch (error) {
+      if (lockHandle) {
+        await closeLockHandleSafely(lockHandle);
+        await removeLockFileIfPresent(lockPath, removeLockFile);
+      }
+
       if (!isLockAlreadyHeldError(error)) {
         throw error;
       }
 
-      const recoveryOutcome = await recoverInboxMutationLock(lockPath, metadata, isProcessAlive);
+      const recoveryOutcome = await recoverInboxMutationLock(
+        lockPath,
+        metadata,
+        isProcessAlive,
+        openLockFile,
+        readLockFile,
+        removeLockFile,
+      );
       if (recoveryOutcome === "retry") {
         continue;
       }
@@ -121,6 +162,16 @@ function buildLockFileName(target: InboxMutationTarget): string {
     .map((segment) => encodeURIComponent(segment))
     .join("--")
     .concat(".lock");
+}
+
+async function closeLockHandleSafely(lockHandle: LockHandle | undefined): Promise<void> {
+  if (!lockHandle) {
+    return;
+  }
+
+  try {
+    await lockHandle.close();
+  } catch {}
 }
 
 function defaultIsProcessAlive(pid: number): boolean {
@@ -161,9 +212,12 @@ function isLockAlreadyHeldError(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "EEXIST";
 }
 
-async function readLockMetadata(lockPath: string): Promise<LockMetadata | undefined> {
+async function readLockMetadata(
+  lockPath: string,
+  readLockFile: typeof readFile,
+): Promise<LockMetadata | undefined> {
   try {
-    const content = await readFile(lockPath, "utf8");
+    const content = await readLockFile(lockPath, "utf8");
     const parsed = JSON.parse(content) as Partial<LockMetadata>;
     if (
       typeof parsed.hostname !== "string" ||
@@ -187,30 +241,53 @@ async function recoverInboxMutationLock(
   lockPath: string,
   metadata: LockMetadata,
   isProcessAlive: (pid: number) => boolean,
+  openLockFile: (path: PathLike, flags?: number | string) => Promise<LockHandle>,
+  readLockFile: typeof readFile,
+  removeLockFile: typeof rm,
 ): Promise<"held" | "retry"> {
-  const existingMetadata = await readLockMetadata(lockPath);
-  if (existingMetadata === undefined) {
-    return "held";
+  const recoveryLockPath = `${lockPath}.recover`;
+  let recoveryHandle: LockHandle | undefined;
+
+  try {
+    recoveryHandle = await openLockFile(recoveryLockPath, "wx");
+  } catch (error) {
+    if (isLockAlreadyHeldError(error)) {
+      return "held";
+    }
+
+    throw error;
   }
 
-  if (existingMetadata.hostname !== metadata.hostname) {
-    return "held";
-  }
+  try {
+    const existingMetadata = await readLockMetadata(lockPath, readLockFile);
+    if (existingMetadata === undefined) {
+      return "held";
+    }
 
-  if (isProcessAlive(existingMetadata.pid)) {
-    return "held";
-  }
+    if (existingMetadata.hostname !== metadata.hostname) {
+      return "held";
+    }
 
-  await rm(lockPath, { force: true });
-  return "retry";
+    if (isProcessAlive(existingMetadata.pid)) {
+      return "held";
+    }
+
+    await removeLockFile(lockPath, { force: true });
+    return "retry";
+  } finally {
+    await closeLockHandleSafely(recoveryHandle);
+    await removeLockFileIfPresent(recoveryLockPath, removeLockFile);
+  }
 }
 
 async function releaseInboxMutationLock(
-  lockHandle: Awaited<ReturnType<typeof open>>,
+  lockHandle: LockHandle,
   lockPath: string,
   metadata: LockMetadata,
   logWarning: (message: string) => void,
   operationError: unknown,
+  readLockFile: typeof readFile,
+  removeLockFile: typeof rm,
 ): Promise<void> {
   try {
     await lockHandle.close();
@@ -219,11 +296,35 @@ async function releaseInboxMutationLock(
   }
 
   try {
-    const currentMetadata = await readLockMetadata(lockPath);
+    const currentMetadata = await readLockMetadata(lockPath, readLockFile);
     if (currentMetadata?.token === metadata.token) {
-      await rm(lockPath, { force: true });
+      await removeLockFile(lockPath, { force: true });
     }
   } catch (error) {
     logWarning(buildLockCleanupWarning("remove", error, operationError));
   }
+}
+
+async function removeLockFileIfPresent(lockPath: string, removeLockFile: typeof rm): Promise<void> {
+  try {
+    await removeLockFile(lockPath, { force: true });
+  } catch {}
+}
+
+function resolveInboxLockDeps(deps: InboxLockDeps): ResolvedInboxLockDeps {
+  return {
+    getGitCommonDirectory: deps.getGitCommonDirectory ?? getGitCommonDirectory,
+    getHostname: deps.getHostname ?? getHostname,
+    getPid: deps.getPid ?? ((): number => process.pid),
+    isProcessAlive: deps.isProcessAlive ?? defaultIsProcessAlive,
+    logWarning:
+      deps.logWarning ??
+      ((message: string): void => {
+        console.error(message);
+      }),
+    openLockFile: deps.openLockFile ?? open,
+    readLockFile: deps.readLockFile ?? readFile,
+    removeLockFile: deps.removeLockFile ?? rm,
+    sleep: deps.sleep ?? defaultSleep,
+  };
 }

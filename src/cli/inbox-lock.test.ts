@@ -109,6 +109,45 @@ describe("withInboxMutationLock", () => {
     ).rejects.toBe(operationError);
   });
 
+  it("cleans up partial lock files when metadata writing fails", async () => {
+    const removedPaths: string[] = [];
+    const writeError = new Error("write failed");
+    const fakeHandle = {
+      close: () => Promise.resolve(),
+      writeFile: async () => {
+        throw writeError;
+      },
+    };
+
+    await expect(
+      withInboxMutationLock(
+        {
+          branch: "yamabiko-lite-inbox",
+          owner: "owner",
+          prNumber: 1,
+          repo: "repo",
+        },
+        async () => "ok",
+        {
+          getGitCommonDirectory: async () => rootDirectory,
+          openLockFile: async () => fakeHandle,
+          removeLockFile: async (filePath) => {
+            removedPaths.push(filePath.toString());
+          },
+        },
+      ),
+    ).rejects.toBe(writeError);
+
+    expect(removedPaths).toContain(
+      path.join(
+        rootDirectory,
+        "yamabiko-lite",
+        "locks",
+        "yamabiko-lite-inbox--owner--repo--pr-1.lock",
+      ),
+    );
+  });
+
   it("recovers stale lock files when the owning process is gone", async () => {
     const lockDirectory = path.join(rootDirectory, "yamabiko-lite", "locks");
     const staleLockPath = path.join(lockDirectory, "yamabiko-lite-inbox--owner--repo--pr-1.lock");
