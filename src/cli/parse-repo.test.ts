@@ -25,6 +25,10 @@ describe("parseRepo", () => {
     expect(parseRepo("owner/repo")).toEqual({ name: "repo", owner: "owner" });
   });
 
+  it("normalizes owner and repo casing to lowercase", () => {
+    expect(parseRepo("Owner/Repo")).toEqual({ name: "repo", owner: "owner" });
+  });
+
   it("throws for invalid format", () => {
     expect(() => parseRepo("owner/repo/extra")).toThrow(
       'Invalid repo format: "owner/repo/extra". Expected "owner/repo".',
@@ -62,6 +66,16 @@ describe("inferRepoFromRemote", () => {
     ) as unknown as Promise<void>);
 
     expect(spawnMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("normalizes inferred repo casing from remote URL", async () => {
+    spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("https://github.com/Example/Project.git\n", 0) as any,
+    );
+
+    await (expect(inferRepoFromRemote()).resolves.toBe(
+      "example/project",
+    ) as unknown as Promise<void>);
   });
 
   it("throws when git remote get-url fails", async () => {

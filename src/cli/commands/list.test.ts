@@ -77,7 +77,19 @@ describe("readInboxFromBranch", () => {
 
     expect(mockReadFileFromBranch).toHaveBeenCalledWith(
       "yamabiko-lite-inbox",
-      ".yamabiko-lite/inbox/OWNER/REPO/pr-42.jsonl",
+      ".yamabiko-lite/inbox/owner/repo/pr-42.jsonl",
+    );
+  });
+
+  it("normalizes mixed-case repo input before building the inbox path", async () => {
+    const records = [makeRecord({ commentId: 1, id: "rec-1" })];
+    mockReadFileFromBranch.mockImplementation(() => Promise.resolve(buildJsonl(records).trim()));
+
+    await readInboxFromBranch("yamabiko-lite-inbox", "Owner/Repo", 42);
+
+    expect(mockReadFileFromBranch).toHaveBeenCalledWith(
+      "yamabiko-lite-inbox",
+      ".yamabiko-lite/inbox/owner/repo/pr-42.jsonl",
     );
   });
 
