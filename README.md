@@ -74,6 +74,7 @@ on:
 jobs:
   ingest:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event.sender.type == 'Bot' && (github.event_name != 'issue_comment' || github.event.issue.pull_request != null)
     permissions:
       contents: write
@@ -108,8 +109,14 @@ Notes:
 - `actions/checkout` is required before the action runs because Yamabiko-lite
   operates on the caller repository worktree.
 - The action writes only to the inbox branch; it never mutates the PR branch.
+- The current reusable-action path targets GitHub.com repositories that use
+  GitHub Actions. GitHub Enterprise Server is not supported in v1.
+- Fork PR ingestion remains out of scope for v1 because write permissions and
+  trust boundaries are stricter there.
 - The CLI remains local-first. The reusable action solves ingestion and storage,
   not autonomous fixing.
+- Full external `/check-inbox` adoption still requires either vendoring the CLI
+  into the target repository or waiting for a packaged distribution path.
 - `@v0` and `@v0.1` are floating tags maintained by the release workflow.
 - Local CLI usage is pinned to Bun 1.3.10 for reproducibility. If `bun` is not on `PATH`, set
   `BUN_BIN=/path/to/bun` before running package scripts.
@@ -135,6 +142,9 @@ Notes:
 ```text
 AGENTS.md
 README.md
+CHANGELOG.md
+SECURITY.md
+LICENSE
 action.yml
 .claude/commands/check-inbox/SKILL.md
 src/
