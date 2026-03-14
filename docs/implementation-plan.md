@@ -22,6 +22,30 @@ The system should make the following workflow routine:
 6. The session fixes or consciously skips each item.
 7. The session pushes changes and requests review again.
 
+## Current Status
+
+The original V1 implementation is complete on `main`.
+
+Implemented today:
+
+- review-event ingestion workflow
+- dedicated inbox branch storage
+- JSONL plus Markdown durable artifacts
+- local CLI read, claim, and resolve flow
+- first repo-local `/check-inbox` command skill
+- strict validation, reconciliation, and retry behavior
+
+The main remaining gap is broader distribution and packaging. The system now
+works as a reusable action inside this repository, but external adoption still
+needs a stable release path and a distributable skill story.
+
+The next phase therefore focuses on broader distribution and operator
+ergonomics:
+
+- publish a stable tagged release for the reusable action
+- package or distribute the `/check-inbox` skill beyond this repository
+- revisit standalone CLI packaging after the action path is stable
+
 ## V1 Scope
 
 ### In Scope
@@ -237,6 +261,21 @@ Minimum expected permissions:
 Fork PR support should be treated as a separate phase because token permissions
 and trust boundaries are stricter there.
 
+### Reusable Action Track
+
+Post-V1, the ingestion workflow should also be packaged as a reusable GitHub
+Action so target repositories can depend on Yamabiko-lite with:
+
+- `actions/checkout` in the caller workflow
+- `uses: ToaruPen/Yamabiko-lite@...`
+- configurable allowlist and inbox branch inputs
+
+This distribution track must preserve the existing operating model:
+
+- the action only writes inbox artifacts
+- the caller repository remains the git working tree
+- the authoring agent still performs code fixes in its original context
+
 ## CLI and Skill Contract
 
 V1 should provide a local command surface such as:
@@ -255,6 +294,11 @@ The `/check-inbox` skill should:
 5. present the next highest-signal items first
 6. fix, test, commit, and push when the item is safely actionable
 7. mark items as resolved after the session acts
+
+The first repository-local implementation now lives at:
+
+- `.claude/commands/check-inbox/SKILL.md`
+- `docs/skills/check-inbox.md`
 
 ## Suggested Implementation Order
 
@@ -289,6 +333,12 @@ The `/check-inbox` skill should:
 - skip rationale capture
 - cycle grouping across review rounds
 - inbox analytics
+
+### Phase 6: Distribution and adoption
+
+- publish and document a stable reusable-action release tag
+- package or distribute the `/check-inbox` skill beyond this repository
+- revisit standalone CLI packaging after the action path is stable
 
 ## Success Criteria
 

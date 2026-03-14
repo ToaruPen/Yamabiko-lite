@@ -1,0 +1,78 @@
+name: Yamabiko-lite Ingest
+description: Ingest AI review bot feedback into a dedicated inbox branch
+
+inputs:
+  bot-allowlist:
+    description: Comma-separated bot logins to ingest
+    required: false
+    default: coderabbitai[bot],github-copilot[bot]
+  github-token:
+    description: GitHub token used for API reads and git-backed inbox-branch writes
+    required: true
+  inbox-branch:
+    description: Dedicated inbox branch name
+    required: false
+    default: yamabiko-lite-inbox
+
+runs:
+  using: composite
+  steps:
+    - name: Validate inbox branch target
+      shell: bash
+      env:
+        INBOX_BRANCH: ${{ inputs.inbox-branch }}
+        PR_HEAD_REF: ${{ github.head_ref }}
+        REF_NAME: ${{ github.ref_name }}
+      run: |
+        TARGET_REF="${PR_HEAD_REF:-$REF_NAME}"
+        case "$INBOX_BRANCH" in
+          refs/pull/*)
+            echo "inbox-branch must not be a pull request ref: $INBOX_BRANCH" >&2
+            exit 1
+            ;;
+        esac
+
+        if [ "$INBOX_BRANCH" = "$TARGET_REF" ] || [ "$INBOX_BRANCH" = "refs/heads/$TARGET_REF" ]; then
+          echo "inbox-branch must not point to the current branch: $TARGET_REF" >&2
+          exit 1
+        fi
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+
+    - name: Install action dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: bun install --frozen-lockfile
+
+    - name: Setup git identity
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Configure git authentication
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        GITHUB_TOKEN_FOR_PUSH: ${{ inputs.github-token }}
+      run: |
+        AUTH_HEADER=$(printf "x-access-token:%s" "$GITHUB_TOKEN_FOR_PUSH" | base64 | tr -d '\n')
+        git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $AUTH_HEADER"
+
+    - name: Run ingestion
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        BOT_ALLOWLIST: ${{ inputs.bot-allowlist }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        INBOX_BRANCH: ${{ inputs.inbox-branch }}
+      run: bun run "$ACTION_PATH/src/actions/ingest.ts"
+
+    - name: Cleanup git authentication
+      if: ${{ always() }}
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: git config --local --unset-all http.https://github.com/.extraheader || true
