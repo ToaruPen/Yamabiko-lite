@@ -1,8 +1,9 @@
-import { mkdir, open, rm } from "node:fs/promises";
+import { mkdir, open, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
 interface InboxLockDeps {
   getGitCommonDirectory?: () => Promise<string>;
+  now?: () => number;
 }
 
 interface InboxMutationTarget {
@@ -12,33 +13,47 @@ interface InboxMutationTarget {
   repo: string;
 }
 
+const STALE_LOCK_TIMEOUT_MS = 5 * 60 * 1000;
+
 export async function withInboxMutationLock<T>(
   target: InboxMutationTarget,
   operation: () => Promise<T>,
   deps: InboxLockDeps = {},
 ): Promise<T> {
   const gitCommonDirectory = await (deps.getGitCommonDirectory ?? getGitCommonDirectory)();
+  const now = deps.now ?? Date.now;
   const lockDirectory = path.join(gitCommonDirectory, "yamabiko-lite", "locks");
   const lockPath = path.join(lockDirectory, buildLockFileName(target));
 
   await mkdir(lockDirectory, { recursive: true });
 
-  let lockHandle: Awaited<ReturnType<typeof open>> | undefined;
+  const lockHandle = await acquireInboxMutationLock(lockPath, target, now);
 
   try {
-    lockHandle = await open(lockPath, "wx");
     return await operation();
+  } finally {
+    await lockHandle.close();
+    await rm(lockPath, { force: true });
+  }
+}
+
+async function acquireInboxMutationLock(
+  lockPath: string,
+  target: InboxMutationTarget,
+  now: () => number,
+): Promise<Awaited<ReturnType<typeof open>>> {
+  try {
+    return await open(lockPath, "wx");
   } catch (error) {
-    if (isLockAlreadyHeldError(error)) {
-      throw new Error(buildLockErrorMessage(target));
+    if (!isLockAlreadyHeldError(error)) {
+      throw error;
     }
 
-    throw error;
-  } finally {
-    if (lockHandle) {
-      await lockHandle.close();
-      await rm(lockPath, { force: true });
+    if (await removeStaleInboxLock(lockPath, now)) {
+      return await open(lockPath, "wx");
     }
+
+    throw new Error(buildLockErrorMessage(target));
   }
 }
 
@@ -76,4 +91,18 @@ async function getGitCommonDirectory(): Promise<string> {
 
 function isLockAlreadyHeldError(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "EEXIST";
+}
+
+async function removeStaleInboxLock(lockPath: string, now: () => number): Promise<boolean> {
+  try {
+    const lockStats = await stat(lockPath);
+    if (now() - lockStats.mtimeMs <= STALE_LOCK_TIMEOUT_MS) {
+      return false;
+    }
+
+    await rm(lockPath, { force: true });
+    return true;
+  } catch {
+    return false;
+  }
 }
