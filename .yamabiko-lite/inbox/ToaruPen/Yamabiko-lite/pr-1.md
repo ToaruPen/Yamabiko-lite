@@ -1,6 +1,6 @@
 # Inbox Summary: ToaruPen/Yamabiko-lite PR #1
 
-**32** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
+**33** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
@@ -36,3 +36,4 @@
 | pending | github-pull_request_review_comment-2934934319 | coderabbitai[bot] | src/cli/parse-repo.test.ts:63 | _⚠️ Potential issue_ \| _🟡 Minor_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934934319) |
 | pending | github-pull_request_review_comment-2934934323 | coderabbitai[bot] | src/reconciler/reconcile.ts:97 | _⚠️ Potential issue_ \| _🟡 Minor_  **AbortError (タイムアウト) が再試行対象に含まれていません**  `isT... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934934323) |
 | pending | github-issue_comment-4059995144 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> <details> <summary>✅ Acti... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4059995144) |
+| pending | github-issue_comment-4060126081 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> <details> <summary>✅ Acti... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4060126081) |
