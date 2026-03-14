@@ -29,6 +29,7 @@ const mockEnsureInboxBranch = mock<(branchName: string) => Promise<string>>();
 const mockCommitAndPushInbox =
   mock<(worktreePath: string, branchName: string, message: string) => Promise<boolean>>();
 const mockCleanupWorktree = mock<(worktreePath: string) => Promise<void>>();
+const mockMkdir = mock<(directoryPath: string, options?: { recursive?: boolean }) => Promise<void>>();
 const mockWriteJsonlFile =
   mock<(filePath: string, records: readonly InboxRecord[]) => Promise<void>>();
 
@@ -51,16 +52,22 @@ mock.module("../../storage/jsonl.ts", () => ({
     mockWriteJsonlFile(...arguments_),
 }));
 
+mock.module("node:fs/promises", () => ({
+  mkdir: (...arguments_: Parameters<typeof mockMkdir>) => mockMkdir(...arguments_),
+}));
+
 beforeEach(() => {
   mockReadFileFromBranch.mockReset();
   mockEnsureInboxBranch.mockReset();
   mockCommitAndPushInbox.mockReset();
   mockCleanupWorktree.mockReset();
+  mockMkdir.mockReset();
   mockWriteJsonlFile.mockReset();
 
   mockEnsureInboxBranch.mockResolvedValue("/tmp/yamabiko-inbox-test");
   mockCommitAndPushInbox.mockResolvedValue(true);
   mockCleanupWorktree.mockResolvedValue();
+  mockMkdir.mockResolvedValue();
   mockWriteJsonlFile.mockResolvedValue();
 });
 
@@ -69,6 +76,7 @@ afterEach(() => {
   mockEnsureInboxBranch.mockReset();
   mockCommitAndPushInbox.mockReset();
   mockCleanupWorktree.mockReset();
+  mockMkdir.mockReset();
   mockWriteJsonlFile.mockReset();
 });
 
@@ -95,6 +103,7 @@ describe("inbox resolve", () => {
     expect(writtenRecords).toHaveLength(1);
     expect(writtenRecords[0]!.status).toBe("fixed");
     expect(writtenRecords[0]!.updatedAt).not.toBe(record.updatedAt);
+    expect(mockMkdir).toHaveBeenCalledTimes(2);
   });
 
   test("resolves claimed → skipped", async () => {
