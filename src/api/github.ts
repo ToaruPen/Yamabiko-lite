@@ -1,4 +1,5 @@
 const GITHUB_API_BASE = "https://api.github.com";
+const DEFAULT_FETCH_TIMEOUT_MILLISECONDS = 15_000;
 
 export interface GitHubIssueComment {
   body: string;
@@ -65,7 +66,7 @@ export async function fetchPullRequestHeadSha(
   token: string,
 ): Promise<string> {
   const url = `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber.toString()}`;
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: buildHeaders(token),
     method: "GET",
   });
@@ -124,7 +125,7 @@ async function fetchAllPages<T>(url: string, token: string): Promise<T[]> {
   let nextUrl: string | undefined = addPerPage(url);
 
   while (nextUrl) {
-    const response: Response = await fetch(nextUrl, {
+    const response: Response = await fetchWithTimeout(nextUrl, {
       headers: buildHeaders(token),
       method: "GET",
     });
@@ -141,6 +142,23 @@ async function fetchAllPages<T>(url: string, token: string): Promise<T[]> {
   }
 
   return results;
+}
+
+async function fetchWithTimeout(
+  url: string,
+  requestInit: RequestInit,
+  timeoutMilliseconds: number = DEFAULT_FETCH_TIMEOUT_MILLISECONDS,
+): Promise<Response> {
+  const abortController = new AbortController();
+  const abortTimeoutHandle = setTimeout(() => {
+    abortController.abort();
+  }, timeoutMilliseconds);
+
+  try {
+    return await fetch(url, { ...requestInit, signal: abortController.signal });
+  } finally {
+    clearTimeout(abortTimeoutHandle);
+  }
 }
 
 async function handleErrorResponse(response: Response): Promise<never> {

@@ -77,6 +77,43 @@ describe("commitAndPushInbox", () => {
     const result = await commitAndPushInbox("/tmp/worktree", "inbox", "test");
 
     expect(result).toBe(false);
+    const addCall = spawnMock.mock.calls.find((callArguments: any) =>
+      callArguments[0]?.includes?.("add"),
+    );
+    expect(addCall).toBeDefined();
+    const addCommandArguments = addCall![0] as string[];
+    expect(addCommandArguments).toContain(".yamabiko-lite");
+    expect(addCommandArguments).not.toContain("--all");
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws when git add exits non-zero", () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("add")) {
+        return createMockSubprocess("", 2, "fatal: unable to add files") as any;
+      }
+      return createMockSubprocess("", 0) as any;
+    });
+
+    expect(commitAndPushInbox("/tmp/worktree", "inbox", "test")).rejects.toThrow(
+      "git add failed (exit 2): fatal: unable to add files",
+    );
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws when git diff --staged --quiet exits with unexpected code", () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("diff")) {
+        return createMockSubprocess("", 2, "fatal: bad revision") as any;
+      }
+      return createMockSubprocess("", 0) as any;
+    });
+
+    expect(commitAndPushInbox("/tmp/worktree", "inbox", "test")).rejects.toThrow(
+      "git diff --staged --quiet failed (exit 2): fatal: bad revision",
+    );
 
     spawnMock.mockRestore();
   });
@@ -188,6 +225,70 @@ describe("ensureInboxBranch", () => {
 
     spawnMock.mockRestore();
   });
+
+  it("throws when git fetch exits non-zero", () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("ls-remote")) {
+        return createMockSubprocess("abc123\trefs/heads/yamabiko/inbox\n", 0) as any;
+      }
+
+      if (commandArguments.includes("fetch")) {
+        return createMockSubprocess("", 1, "fatal: fetch failed") as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
+
+    expect(ensureInboxBranch("yamabiko/inbox")).rejects.toThrow(
+      "git fetch failed (exit 1): fatal: fetch failed",
+    );
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws when git worktree add exits non-zero for existing branch", () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("ls-remote")) {
+        return createMockSubprocess("abc123\trefs/heads/yamabiko/inbox\n", 0) as any;
+      }
+
+      if (commandArguments.includes("fetch")) {
+        return createMockSubprocess("", 0) as any;
+      }
+
+      if (commandArguments.includes("worktree") && commandArguments.includes("add")) {
+        return createMockSubprocess("", 1, "fatal: cannot create worktree") as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
+
+    expect(ensureInboxBranch("yamabiko/inbox")).rejects.toThrow(
+      "git worktree add failed (exit 1): fatal: cannot create worktree",
+    );
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws when git worktree add --orphan exits non-zero", () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("ls-remote")) {
+        return createMockSubprocess("", 0) as any;
+      }
+
+      if (commandArguments.includes("worktree") && commandArguments.includes("--orphan")) {
+        return createMockSubprocess("", 1, "fatal: orphan creation failed") as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
+
+    expect(ensureInboxBranch("yamabiko/inbox")).rejects.toThrow(
+      "git worktree add --orphan failed (exit 1): fatal: orphan creation failed",
+    );
+
+    spawnMock.mockRestore();
+  });
 });
 
 describe("cleanupWorktree", () => {
@@ -204,6 +305,18 @@ describe("cleanupWorktree", () => {
     expect(callArguments).toContain("remove");
     expect(callArguments).toContain("--force");
     expect(callArguments).toContain("/tmp/yamabiko-inbox-test123");
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws when git worktree remove exits non-zero", () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("", 1, "fatal: failed to remove worktree") as any,
+    );
+
+    expect(cleanupWorktree("/tmp/yamabiko-inbox-test123")).rejects.toThrow(
+      "git worktree remove failed (exit 1): fatal: failed to remove worktree",
+    );
 
     spawnMock.mockRestore();
   });

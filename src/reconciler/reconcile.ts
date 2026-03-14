@@ -87,7 +87,13 @@ function countChanges(
 
 function isTransientError(error: unknown): boolean {
   if (error instanceof TypeError) return true;
-  return error instanceof Error && /GitHub API error:\s*5\d\d/.test(error.message);
+  if (!(error instanceof Error)) return false;
+
+  return (
+    /GitHub API error:\s*5\d\d/.test(error.message) ||
+    /Rate limit exceeded/i.test(error.message) ||
+    /secondary rate limit/i.test(error.message)
+  );
 }
 
 function normalizeIssueComments(

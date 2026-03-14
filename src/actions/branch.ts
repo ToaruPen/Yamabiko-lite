@@ -1,5 +1,9 @@
 export async function cleanupWorktree(worktreePath: string): Promise<void> {
-  await runGit(["worktree", "remove", "--force", worktreePath]);
+  const { exitCode, stderr } = await runGit(["worktree", "remove", "--force", worktreePath]);
+
+  if (exitCode !== 0) {
+    throw new Error(`git worktree remove failed (exit ${String(exitCode)}): ${stderr}`);
+  }
 }
 
 export async function commitAndPushInbox(
@@ -7,14 +11,29 @@ export async function commitAndPushInbox(
   branchName: string,
   message: string,
 ): Promise<boolean> {
-  await runGit(["add", "--all"], { workingDirectory: worktreePath });
-
-  const { exitCode: diffExitCode } = await runGit(["diff", "--staged", "--quiet"], {
+  const { exitCode: addExitCode, stderr: addStderr } = await runGit(["add", ".yamabiko-lite"], {
     workingDirectory: worktreePath,
   });
 
+  if (addExitCode !== 0) {
+    throw new Error(`git add failed (exit ${String(addExitCode)}): ${addStderr}`);
+  }
+
+  const { exitCode: diffExitCode, stderr: diffStderr } = await runGit(
+    ["diff", "--staged", "--quiet"],
+    {
+      workingDirectory: worktreePath,
+    },
+  );
+
   if (diffExitCode === 0) {
     return false;
+  }
+
+  if (diffExitCode !== 1) {
+    throw new Error(
+      `git diff --staged --quiet failed (exit ${String(diffExitCode)}): ${diffStderr}`,
+    );
   }
 
   const fullMessage = `${message} [skip ci]`;
@@ -58,10 +77,43 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
   }
 
   if (stdout.trim()) {
-    await runGit(["fetch", "origin", `${branchName}:${branchName}`]);
-    await runGit(["worktree", "add", worktreePath, branchName]);
+    const { exitCode: fetchExitCode, stderr: fetchStderr } = await runGit([
+      "fetch",
+      "origin",
+      `${branchName}:${branchName}`,
+    ]);
+
+    if (fetchExitCode !== 0) {
+      throw new Error(`git fetch failed (exit ${String(fetchExitCode)}): ${fetchStderr}`);
+    }
+
+    const { exitCode: worktreeExitCode, stderr: worktreeStderr } = await runGit([
+      "worktree",
+      "add",
+      worktreePath,
+      branchName,
+    ]);
+
+    if (worktreeExitCode !== 0) {
+      throw new Error(
+        `git worktree add failed (exit ${String(worktreeExitCode)}): ${worktreeStderr}`,
+      );
+    }
   } else {
-    await runGit(["worktree", "add", "--orphan", "-b", branchName, worktreePath]);
+    const { exitCode: orphanExitCode, stderr: orphanStderr } = await runGit([
+      "worktree",
+      "add",
+      "--orphan",
+      "-b",
+      branchName,
+      worktreePath,
+    ]);
+
+    if (orphanExitCode !== 0) {
+      throw new Error(
+        `git worktree add --orphan failed (exit ${String(orphanExitCode)}): ${orphanStderr}`,
+      );
+    }
   }
 
   return worktreePath;

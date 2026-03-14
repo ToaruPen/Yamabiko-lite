@@ -194,6 +194,28 @@ describe("reconcilePullRequest", () => {
     expect(sleepSpy).toHaveBeenCalledWith(1000);
   });
 
+  it("retries on rate limit error (403)", async () => {
+    let reviewAttempts = 0;
+    const sleepSpy = spyOn(Bun, "sleep").mockImplementation(() => Promise.resolve());
+
+    spyOn(githubApi, "fetchPullRequestReviews").mockImplementation(async () => {
+      reviewAttempts += 1;
+      if (reviewAttempts === 1) {
+        throw new Error("Rate limit exceeded");
+      }
+      return [makeReview({ id: 50 })];
+    });
+    spyOn(githubApi, "fetchPullRequestComments").mockResolvedValue([]);
+    spyOn(githubApi, "fetchIssueComments").mockResolvedValue([]);
+
+    const result = await reconcilePullRequest(baseOptions);
+
+    expect(result.records).toHaveLength(1);
+    expect(reviewAttempts).toBe(2);
+    expect(sleepSpy).toHaveBeenCalledTimes(1);
+    expect(sleepSpy).toHaveBeenCalledWith(1000);
+  });
+
   it("reconciles all event types in one execution", async () => {
     spyOn(githubApi, "fetchPullRequestReviews").mockResolvedValue([
       makeReview({ body: "review A", id: 41 }),

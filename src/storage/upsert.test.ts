@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
-import type { InboxRecord } from "../schema/inbox-record.js";
+import type { InboxRecord } from "../schema/inbox-record.ts";
 
-import { upsertRecord, upsertRecords } from "./upsert.js";
+import { upsertRecord, upsertRecords } from "./upsert.ts";
 
 function makeRecord(overrides: Partial<InboxRecord> = {}): InboxRecord {
   return {
