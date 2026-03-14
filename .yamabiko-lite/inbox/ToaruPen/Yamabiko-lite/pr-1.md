@@ -4,7 +4,7 @@
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
-| pending | github-issue_comment-4059693319 | coderabbitai[bot] |  | <!-- This is an auto-generated comment: summarize by coderabbit.ai --> <!-- walk... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4059693319) |
+| pending | github-issue_comment-4059693319 | coderabbitai[bot] |  | <!-- This is an auto-generated comment: summarize by coderabbit.ai --> <!-- This... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4059693319) |
 | pending | github-pull_request_review-3948251931 | coderabbitai[bot] |  | **Actionable comments posted: 10**  <details> <summary>🧹 Nitpick comments (15)<... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948251931) |
 | pending | github-pull_request_review_comment-2934798389 | coderabbitai[bot] | .github/workflows/review-ingest.yml:13 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934798389) |
 | pending | github-pull_request_review_comment-2934798390 | coderabbitai[bot] | biome.json:24 | _⚠️ Potential issue_ \| _🟡 Minor_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934798390) |
