@@ -18,10 +18,7 @@ export const INBOX_STATUSES: readonly InboxStatus[] = [
   "stale",
 ] as const;
 
-export const VALID_TRANSITIONS: ReadonlyMap<
-  InboxStatus,
-  ReadonlySet<InboxStatus>
-> = new Map([
+export const VALID_TRANSITIONS: ReadonlyMap<InboxStatus, ReadonlySet<InboxStatus>> = new Map([
   ["claimed", new Set<InboxStatus>(["fixed", "skipped", "stale"])],
   ["fixed", new Set<InboxStatus>()],
   ["pending", new Set<InboxStatus>(["claimed", "stale"])],
@@ -29,10 +26,7 @@ export const VALID_TRANSITIONS: ReadonlyMap<
   ["stale", new Set<InboxStatus>()],
 ]);
 
-export function assertValidTransition(
-  from: InboxStatus,
-  to: InboxStatus,
-): void {
+export function assertValidTransition(from: InboxStatus, to: InboxStatus): void {
   if (!isValidTransition(from, to)) {
     throw new Error(
       `Invalid state transition: "${from}" → "${to}". ` +
@@ -41,9 +35,6 @@ export function assertValidTransition(
   }
 }
 
-export function isValidTransition(
-  from: InboxStatus,
-  to: InboxStatus,
-): boolean {
+export function isValidTransition(from: InboxStatus, to: InboxStatus): boolean {
   return VALID_TRANSITIONS.get(from)?.has(to) ?? false;
 }

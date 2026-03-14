@@ -15,13 +15,7 @@ describe("INBOX_STATUSES", () => {
   });
 
   it("includes all defined statuses", () => {
-    const expected: InboxStatus[] = [
-      "pending",
-      "claimed",
-      "fixed",
-      "skipped",
-      "stale",
-    ];
+    const expected: InboxStatus[] = ["pending", "claimed", "fixed", "skipped", "stale"];
     for (const s of expected) {
       expect(INBOX_STATUSES).toContain(s);
     }

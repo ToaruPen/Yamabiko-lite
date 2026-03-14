@@ -80,7 +80,6 @@ export function parseInboxRecords(jsonlContent: string): InboxRecord[] {
   const lines = jsonlContent.split(/\r?\n/);
 
   for (const [index, line] of lines.entries()) {
-
     if (!line || line.trim() === "") {
       continue;
     }
@@ -91,9 +90,7 @@ export function parseInboxRecords(jsonlContent: string): InboxRecord[] {
       parsedJson = JSON.parse(line);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn(
-        `[inbox-record] Skipping invalid JSONL line ${String(index + 1)}: ${message}`,
-      );
+      console.warn(`[inbox-record] Skipping invalid JSONL line ${String(index + 1)}: ${message}`);
       continue;
     }
 
@@ -111,9 +108,7 @@ export function parseInboxRecords(jsonlContent: string): InboxRecord[] {
       })
       .join(", ");
 
-    console.warn(
-      `[inbox-record] Skipping invalid record on line ${String(index + 1)}: ${issues}`,
-    );
+    console.warn(`[inbox-record] Skipping invalid record on line ${String(index + 1)}: ${issues}`);
   }
 
   return records;
