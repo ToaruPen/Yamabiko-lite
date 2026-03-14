@@ -84,7 +84,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
-      - uses: ToaruPen/Yamabiko-lite@v0.1.0
+      - uses: ToaruPen/Yamabiko-lite@v0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           bot-allowlist: coderabbitai[bot],github-copilot[bot]
@@ -99,8 +99,8 @@ Notes:
 - The action writes only to the inbox branch; it never mutates the PR branch.
 - The CLI remains local-first. The reusable action solves ingestion and storage,
   not autonomous fixing.
-- The first stable tag is `v0.1.0`. Pin to a commit SHA instead if you need to
-  audit or stage the rollout more conservatively.
+- `@v0` follows the latest `v0.x.y` release automatically. Use `@v0.1.0` or a
+  commit SHA if you need an exact pin for staged rollouts or audits.
 - Local CLI usage is pinned to Bun 1.3.10 for reproducibility. If `bun` is not on `PATH`, set
   `BUN_BIN=/path/to/bun` before running package scripts.
 - A release workflow and copyable skill template now live at

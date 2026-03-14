@@ -34,6 +34,10 @@ verification suite passes.
    git push origin v0.1.0
    ```
 
+   The Release workflow will move the floating tags for the same compatibility
+   line after the exact tag is pushed. For `v0.1.0`, that means `v0` and `v0.1`
+   will be updated automatically.
+
 4. Confirm the Release workflow succeeds.
 
    The workflow at `.github/workflows/release.yml` runs `check`, `test`,
@@ -45,8 +49,11 @@ verification suite passes.
 
 5. Confirm the adoption example references the published tag.
 
-   `README.md` should point to the tag that was just released, such as
-   `uses: ToaruPen/Yamabiko-lite@v0.1.0`.
+   `README.md` should point to the intended adoption channel:
+
+   - `uses: ToaruPen/Yamabiko-lite@v0` for automatic compatible upgrades
+   - `uses: ToaruPen/Yamabiko-lite@v0.1.0` for an exact release pin
+   - `uses: ToaruPen/Yamabiko-lite@<commit-sha>` for maximum auditability
 
 ## Distributed Skill Template
 
