@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
 import {
   normalizeEvent,
   normalizeIssueCommentEvent,
@@ -15,7 +16,7 @@ const providedHeadSha = "9999999999999999999999999999999999999999";
 
 function loadFixture<T>(name: string): T {
   const fileUrl = new URL(`./__fixtures__/${name}`, import.meta.url);
-  return JSON.parse(Bun.file(fileUrl).textSync()) as T;
+  return JSON.parse(readFileSync(fileUrl, "utf8")) as T;
 }
 
 const reviewFixture = loadFixture<PullRequestReviewEvent>("pull-request-review.json");
