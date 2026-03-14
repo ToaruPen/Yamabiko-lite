@@ -51,8 +51,8 @@ V1 is implemented and merged on `main`.
 - A repo-local `/check-inbox` command skill is implemented
 - Strict validation, retry, stale-head filtering, and integrity guards are in place
 
-The remaining gap is publishing the first stable release tag and finishing the
-external distribution story around the CLI and `/check-inbox` template.
+The remaining gap is broader external distribution for the CLI and a packaged
+`/check-inbox` path beyond this repository.
 
 ## Use In Another Repository
 
@@ -92,6 +92,17 @@ jobs:
           bun-version: 1.3.10
 ```
 
+Choose the version channel that matches your rollout policy:
+
+- `@v0` - automatic compatible upgrades within the `v0.x.y` line. This is the
+  recommended default for most adopters.
+- `@v0.1` - automatic patch upgrades within the `v0.1.y` line. Use this when
+  you want smaller automatic updates without fully pinning.
+- `@v0.1.2` - exact release pin. Use this when you want to control when
+  upgrades happen.
+- `@<commit-sha>` - maximum auditability. Use this when your organization
+  requires immutable references.
+
 Notes:
 
 - `actions/checkout` is required before the action runs because Yamabiko-lite
@@ -99,8 +110,7 @@ Notes:
 - The action writes only to the inbox branch; it never mutates the PR branch.
 - The CLI remains local-first. The reusable action solves ingestion and storage,
   not autonomous fixing.
-- `@v0` follows the latest `v0.x.y` release automatically. Use `@v0.1.0` or a
-  commit SHA if you need an exact pin for staged rollouts or audits.
+- `@v0` and `@v0.1` are floating tags maintained by the release workflow.
 - Local CLI usage is pinned to Bun 1.3.10 for reproducibility. If `bun` is not on `PATH`, set
   `BUN_BIN=/path/to/bun` before running package scripts.
 - A release workflow and copyable skill template now live at
