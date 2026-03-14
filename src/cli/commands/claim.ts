@@ -50,7 +50,7 @@ export function applyClaimToRecords(records: InboxRecord[], id: string): ClaimRe
   };
 }
 
-async function claimInboxItem(options: ClaimOptions): Promise<string> {
+export async function runClaim(options: ClaimOptions): Promise<string> {
   const { branch, id, pr, repo } = options;
   const { name, owner } = parseRepo(repo);
   const prNumber = parsePrNumber(pr);
@@ -139,7 +139,7 @@ export default defineCommand({
   async run({ args }): Promise<void> {
     const repo = args.repo || (await inferRepoFromRemote());
 
-    await claimInboxItem({
+    await runClaim({
       branch: args.branch,
       id: args.id,
       pr: args.pr,
