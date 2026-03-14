@@ -12,6 +12,7 @@ import {
   commitAndPushInbox as _commitAndPushInbox,
   ensureInboxBranch as _ensureInboxBranch,
   readFileFromBranch as _readFileFromBranch,
+  resolveInboxPathsInBranch as _resolveInboxPathsInBranch,
 } from "./branch.ts";
 
 export interface IngestDeps {
@@ -22,6 +23,7 @@ export interface IngestDeps {
   generateMarkdownSummary?: typeof _generateMarkdownSummary;
   readFileFromBranch?: typeof _readFileFromBranch;
   reconcilePullRequest?: typeof _reconcilePullRequest;
+  resolveInboxPathsInBranch?: typeof _resolveInboxPathsInBranch;
   writeJsonlFile?: typeof _writeJsonlFile;
 }
 
@@ -179,6 +181,7 @@ function resolveIngestDeps(deps: IngestDeps): ResolvedIngestDeps {
     generateMarkdownSummary: deps.generateMarkdownSummary ?? _generateMarkdownSummary,
     readFileFromBranch: deps.readFileFromBranch ?? _readFileFromBranch,
     reconcilePullRequest: deps.reconcilePullRequest ?? _reconcilePullRequest,
+    resolveInboxPathsInBranch: deps.resolveInboxPathsInBranch ?? _resolveInboxPathsInBranch,
     writeJsonlFile: deps.writeJsonlFile ?? _writeJsonlFile,
   };
 }
@@ -189,8 +192,12 @@ async function runIngestion(
   worktreePath: string,
   deps: ResolvedIngestDeps,
 ): Promise<IngestResult> {
-  const jsonlPath = `.yamabiko-lite/inbox/${context.owner}/${context.repo}/pr-${String(context.prNumber)}.jsonl`;
-  const mdPath = `.yamabiko-lite/inbox/${context.owner}/${context.repo}/pr-${String(context.prNumber)}.md`;
+  const { jsonlPath, mdPath } = await deps.resolveInboxPathsInBranch(
+    options.branchName,
+    context.owner,
+    context.repo,
+    context.prNumber,
+  );
 
   const existingJsonl = await deps.readFileFromBranch(options.branchName, jsonlPath);
   const existingRecords = existingJsonl ? parseInboxRecords(existingJsonl) : [];
