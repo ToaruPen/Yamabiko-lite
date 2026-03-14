@@ -2,7 +2,11 @@ import { defineCommand } from "citty";
 
 import type { InboxRecord } from "../../schema/inbox-record.ts";
 
-import { fetchInboxBranch, readFileFromBranch } from "../../actions/branch.ts";
+import {
+  fetchInboxBranch,
+  readFileFromBranch,
+  resolveInboxPathsInBranch,
+} from "../../actions/branch.ts";
 import { parseInboxRecords } from "../../schema/inbox-record.ts";
 import { generateMarkdownSummary } from "../../storage/markdown.ts";
 import { inferRepoFromRemote, parseRepo } from "../parse-repo.ts";
@@ -46,9 +50,9 @@ export async function readInboxFromBranch(
   prNumber: number,
 ): Promise<InboxRecord[]> {
   const { name, owner } = parseRepo(repoPath);
-  const jsonlPath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${String(prNumber)}.jsonl`;
 
   await fetchInboxBranch(branch);
+  const { jsonlPath } = await resolveInboxPathsInBranch(branch, owner, name, prNumber);
   const content = await readFileFromBranch(branch, jsonlPath);
 
   if (!content) {
