@@ -1,24 +1,3 @@
-declare module "bun:test" {
-  interface InboxRecordExpectMatcher {
-    not: InboxRecordExpectMatcher;
-    toBe(expected: unknown): void;
-    toBeUndefined(): void;
-    toContain(expected: unknown): void;
-    toEqual(expected: unknown): void;
-    toHaveLength(expected: number): void;
-    toThrow(expected?: unknown): void;
-  }
-
-  type InboxRecordTestCallback = () => Promise<void> | void;
-
-  export function describe(
-    name: string,
-    function_: InboxRecordTestCallback,
-  ): void;
-  export function expect(value: unknown): InboxRecordExpectMatcher;
-  export function it(name: string, function_: InboxRecordTestCallback): void;
-}
-
 import { describe, expect, it } from "bun:test";
 import { ValiError } from "valibot";
 
