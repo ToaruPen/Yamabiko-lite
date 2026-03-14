@@ -2,20 +2,24 @@
   "name": "yamabiko-lite",
   "version": "0.1.0",
   "type": "module",
+  "packageManager": "bun@1.3.10",
   "description": "Lightweight inbox-driven PR remediation for AI review bots",
+  "engines": {
+    "bun": ">=1.3.10"
+  },
   "bin": {
-    "yamabiko-lite": "./src/cli/main.ts"
+    "yamabiko-lite": "./bin/yamabiko-lite"
   },
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "biome format --write ./src",
     "format:check": "biome format ./src",
-    "typecheck": "bunx tsc --noEmit",
-    "deadcode": "knip",
-    "test": "bun test",
-    "check": "bun run typecheck && bun run lint && bun run deadcode",
-    "build": "bun build src/cli/main.ts --outdir dist --target node"
+    "typecheck": "sh ./scripts/bun-exec.sh x tsc --noEmit",
+    "deadcode": "sh ./scripts/bun-exec.sh x knip",
+    "test": "sh ./scripts/bun-exec.sh test",
+    "check": "sh ./scripts/bun-exec.sh run format:check && sh ./scripts/bun-exec.sh run typecheck && sh ./scripts/bun-exec.sh run lint && sh ./scripts/bun-exec.sh run deadcode",
+    "build": "sh ./scripts/bun-exec.sh build src/cli/main.ts --outdir dist --target node"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",

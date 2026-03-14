@@ -36,15 +36,15 @@ Implemented today:
 - strict validation, reconciliation, and retry behavior
 
 The main remaining gap is broader distribution and packaging. The system now
-works as a reusable action inside this repository, but external adoption still
-needs a stable release path and a distributable skill story.
+has a stable reusable-action release path, but external adoption still needs a
+distributable skill story and smoother CLI packaging.
 
 The next phase therefore focuses on broader distribution and operator
 ergonomics:
 
-- publish a stable tagged release for the reusable action
 - package or distribute the `/check-inbox` skill beyond this repository
 - revisit standalone CLI packaging after the action path is stable
+- expand adoption guidance for repositories that prefer pinned-SHA rollouts
 
 ## V1 Scope
 
@@ -336,9 +336,9 @@ The first repository-local implementation now lives at:
 
 ### Phase 6: Distribution and adoption
 
-- publish and document a stable reusable-action release tag
 - package or distribute the `/check-inbox` skill beyond this repository
 - revisit standalone CLI packaging after the action path is stable
+- expand adoption guidance for repositories that prefer pinned-SHA rollouts
 
 ## Success Criteria
 

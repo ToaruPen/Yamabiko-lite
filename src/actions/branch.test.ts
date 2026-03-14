@@ -4,6 +4,7 @@ import {
   cleanupWorktree,
   commitAndPushInbox,
   ensureInboxBranch,
+  fetchInboxBranch,
   readFileFromBranch,
 } from "./branch.ts";
 
@@ -338,6 +339,70 @@ describe("ensureInboxBranch", () => {
 
     await expect(ensureInboxBranch("yamabiko/inbox")).rejects.toThrow(
       "git worktree add --orphan failed (exit 1): fatal: orphan creation failed",
+    );
+
+    spawnMock.mockRestore();
+  });
+});
+
+describe("fetchInboxBranch", () => {
+  it("deletes the local ref when the remote branch is missing", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("fetch")) {
+        return createMockSubprocess(
+          "",
+          128,
+          "fatal: couldn't find remote ref refs/heads/inbox",
+        ) as any;
+      }
+
+      if (commandArguments.includes("update-ref")) {
+        return createMockSubprocess("", 0) as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
+
+    await expect(fetchInboxBranch("inbox")).resolves.toBeUndefined();
+    const deleteReferenceCall = spawnMock.mock.calls.find((callArguments: any) =>
+      callArguments[0]?.includes?.("update-ref"),
+    );
+    expect(deleteReferenceCall).toBeDefined();
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws when deleting a stale local ref fails", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("fetch")) {
+        return createMockSubprocess(
+          "",
+          128,
+          "fatal: couldn't find remote ref refs/heads/inbox",
+        ) as any;
+      }
+
+      if (commandArguments.includes("update-ref")) {
+        return createMockSubprocess("", 1, "fatal: could not delete reference") as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
+
+    await expect(fetchInboxBranch("inbox")).rejects.toThrow(
+      "git update-ref failed (exit 1): fatal: could not delete reference",
+    );
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws when fetch fails for reasons other than missing branch", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("", 128, "fatal: unable to access remote") as any,
+    );
+
+    await expect(fetchInboxBranch("inbox")).rejects.toThrow(
+      "git fetch failed (exit 128): fatal: unable to access remote",
     );
 
     spawnMock.mockRestore();
