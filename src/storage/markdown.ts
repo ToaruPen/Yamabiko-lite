@@ -11,6 +11,31 @@ const STATUS_ORDER: ReadonlyMap<InboxStatus, number> = new Map([
 
 const MAX_SUMMARY_LENGTH = 80;
 
+export function generateMarkdownSummary(
+  records: readonly InboxRecord[],
+  prNumber: number,
+  repo: { name: string; owner: string },
+): string {
+  const sorted = sortRecords(records);
+  const lines = [
+    `# Inbox Summary: ${repo.owner}/${repo.name} PR #${String(prNumber)}`,
+    "",
+    formatCounts(records),
+  ];
+
+  if (records.length > 0) {
+    lines.push(
+      "",
+      "| Status | ID | Bot | File:Line | Summary | Link |",
+      "| --- | --- | --- | --- | --- | --- |",
+      ...sorted.map((record) => formatRow(record)),
+    );
+  }
+
+  lines.push("");
+  return lines.join("\n");
+}
+
 function formatCounts(records: readonly InboxRecord[]): string {
   const counts: Record<InboxStatus, number> = {
     claimed: 0,
@@ -52,11 +77,13 @@ function formatRow(record: InboxRecord): string {
 }
 
 function sortRecords(records: readonly InboxRecord[]): InboxRecord[] {
-  return [...records].sort((a: InboxRecord, b: InboxRecord) => {
+  const copy: InboxRecord[] = [...records];
+  copy.sort((a, b) => {
     const orderA = STATUS_ORDER.get(a.status) ?? 999;
     const orderB = STATUS_ORDER.get(b.status) ?? 999;
     return orderA - orderB;
   });
+  return copy;
 }
 
 function truncateBody(body: string): string {
@@ -64,28 +91,4 @@ function truncateBody(body: string): string {
     return body;
   }
   return body.slice(0, MAX_SUMMARY_LENGTH) + "...";
-}
-
-export function generateMarkdownSummary(
-  records: readonly InboxRecord[],
-  prNumber: number,
-  repo: { name: string; owner: string },
-): string {
-  const lines = [
-    `# Inbox Summary: ${repo.owner}/${repo.name} PR #${String(prNumber)}`,
-    "",
-    formatCounts(records),
-  ];
-
-  if (records.length > 0) {
-    lines.push(
-      "",
-      "| Status | ID | Bot | File:Line | Summary | Link |",
-      "| --- | --- | --- | --- | --- | --- |",
-      ...sortRecords(records).map(formatRow),
-    );
-  }
-
-  lines.push("");
-  return lines.join("\n");
 }

@@ -23,7 +23,7 @@ function makeRecord(overrides: Partial<InboxRecord> = {}): InboxRecord {
   };
 }
 
-const REPO = { owner: "acme", name: "widgets" };
+const REPO = { name: "widgets", owner: "acme" };
 
 describe("generateMarkdownSummary", () => {
   describe("empty records", () => {
@@ -45,28 +45,28 @@ describe("generateMarkdownSummary", () => {
     it("renders 3 records as 3 table rows with correct columns", () => {
       const records: InboxRecord[] = [
         makeRecord({
-          id: "r1",
-          status: "pending",
-          botLogin: "bot-a",
-          path: "src/foo.ts",
-          line: 10,
           body: "Fix this issue",
+          botLogin: "bot-a",
           commentUrl: "https://github.com/acme/widgets/pull/7#r1",
+          id: "r1",
+          line: 10,
+          path: "src/foo.ts",
+          status: "pending",
         }),
         makeRecord({
-          id: "r2",
-          status: "fixed",
-          botLogin: "bot-b",
-          path: "src/bar.ts",
           body: "Looks good now",
+          botLogin: "bot-b",
           commentUrl: "https://github.com/acme/widgets/pull/7#r2",
+          id: "r2",
+          path: "src/bar.ts",
+          status: "fixed",
         }),
         makeRecord({
+          body: "Not relevant",
+          botLogin: "bot-a",
+          commentUrl: "https://github.com/acme/widgets/pull/7#r3",
           id: "r3",
           status: "skipped",
-          botLogin: "bot-a",
-          body: "Not relevant",
-          commentUrl: "https://github.com/acme/widgets/pull/7#r3",
         }),
       ];
 
@@ -107,18 +107,18 @@ describe("generateMarkdownSummary", () => {
         return cols[2];
       });
 
-      const pendingIdx = ids.indexOf("pending-1");
-      const claimedIdx = ids.indexOf("claimed-1");
-      const fixedIdx = ids.indexOf("fixed-1");
-      const skippedIdx = ids.indexOf("skipped-1");
-      const staleIdx = ids.indexOf("stale-1");
+      const pendingIndex = ids.indexOf("pending-1");
+      const claimedIndex = ids.indexOf("claimed-1");
+      const fixedIndex = ids.indexOf("fixed-1");
+      const skippedIndex = ids.indexOf("skipped-1");
+      const staleIndex = ids.indexOf("stale-1");
 
-      expect(pendingIdx).toBeLessThan(fixedIdx);
-      expect(pendingIdx).toBeLessThan(skippedIdx);
-      expect(pendingIdx).toBeLessThan(staleIdx);
-      expect(claimedIdx).toBeLessThan(fixedIdx);
-      expect(claimedIdx).toBeLessThan(skippedIdx);
-      expect(claimedIdx).toBeLessThan(staleIdx);
+      expect(pendingIndex).toBeLessThan(fixedIndex);
+      expect(pendingIndex).toBeLessThan(skippedIndex);
+      expect(pendingIndex).toBeLessThan(staleIndex);
+      expect(claimedIndex).toBeLessThan(fixedIndex);
+      expect(claimedIndex).toBeLessThan(skippedIndex);
+      expect(claimedIndex).toBeLessThan(staleIndex);
     });
   });
 
