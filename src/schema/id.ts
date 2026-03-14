@@ -1,15 +1,7 @@
-export function generateRecordId(
-  source: string,
-  eventType: string,
-  sourceId: number,
-): string {
-  return `${source}-${eventType}-${sourceId}`;
-}
-
 export function extractDeduplicationKey(record: {
   commentId: number;
-  reviewId?: number;
   eventType: string;
+  reviewId?: number;
 }): number {
   if (record.eventType === "pull_request_review") {
     if (record.reviewId === undefined) {
@@ -33,4 +25,12 @@ export function extractDeduplicationKey(record: {
   }
 
   throw new Error(`Unknown event type: ${record.eventType}`);
+}
+
+export function generateRecordId(
+  source: string,
+  eventType: string,
+  sourceId: number,
+): string {
+  return `${source}-${eventType}-${String(sourceId)}`;
 }

@@ -1,10 +1,11 @@
 import { describe, expect, it } from "bun:test";
+
 import { extractDeduplicationKey, generateRecordId } from "./id";
 
 describe("generateRecordId", () => {
   it("is deterministic: same input produces same ID", () => {
-    const id1 = generateRecordId("github", "pull_request_review_comment", 123456789);
-    const id2 = generateRecordId("github", "pull_request_review_comment", 123456789);
+    const id1 = generateRecordId("github", "pull_request_review_comment", 123_456_789);
+    const id2 = generateRecordId("github", "pull_request_review_comment", 123_456_789);
     expect(id1).toBe(id2);
   });
 
@@ -15,19 +16,19 @@ describe("generateRecordId", () => {
   });
 
   it("includes source, eventType, and sourceId in the output", () => {
-    const id = generateRecordId("github", "pull_request_review_comment", 123456789);
+    const id = generateRecordId("github", "pull_request_review_comment", 123_456_789);
     expect(id).toContain("github");
     expect(id).toContain("pull_request_review_comment");
     expect(id).toContain("123456789");
   });
 
   it("formats ID as {source}-{eventType}-{sourceId}", () => {
-    const id = generateRecordId("github", "pull_request_review_comment", 123456789);
+    const id = generateRecordId("github", "pull_request_review_comment", 123_456_789);
     expect(id).toBe("github-pull_request_review_comment-123456789");
   });
 
   it("works for review events with reviewId", () => {
-    const id = generateRecordId("github", "pull_request_review", 987654321);
+    const id = generateRecordId("github", "pull_request_review", 987_654_321);
     expect(id).toBe("github-pull_request_review-987654321");
   });
 
@@ -41,19 +42,19 @@ describe("extractDeduplicationKey", () => {
   it("returns reviewId for pull_request_review events", () => {
     const key = extractDeduplicationKey({
       commentId: 0,
-      reviewId: 987654321,
       eventType: "pull_request_review",
+      reviewId: 987_654_321,
     });
-    expect(key).toBe(987654321);
+    expect(key).toBe(987_654_321);
   });
 
   it("returns commentId for pull_request_review_comment events", () => {
     const key = extractDeduplicationKey({
-      commentId: 123456789,
-      reviewId: 987654321,
+      commentId: 123_456_789,
       eventType: "pull_request_review_comment",
+      reviewId: 987_654_321,
     });
-    expect(key).toBe(123456789);
+    expect(key).toBe(123_456_789);
   });
 
   it("returns commentId for issue_comment events", () => {

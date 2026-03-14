@@ -7,8 +7,8 @@
     "yamabiko-lite": "./src/cli/main.ts"
   },
   "scripts": {
-    "lint": "echo 'Not configured yet'",
-    "lint:fix": "echo 'Not configured yet'",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "biome format --write ./src",
     "format:check": "biome format ./src",
     "typecheck": "bunx tsc --noEmit",

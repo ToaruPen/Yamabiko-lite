@@ -1,11 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import {
-  INBOX_STATUSES,
-  VALID_TRANSITIONS,
-  assertValidTransition,
-  isValidTransition,
-} from "./state.ts";
+
 import type { InboxStatus } from "./state.ts";
+
+import {
+  assertValidTransition,
+  INBOX_STATUSES,
+  isValidTransition,
+  VALID_TRANSITIONS,
+} from "./state.ts";
 
 describe("INBOX_STATUSES", () => {
   it("contains exactly 5 statuses", () => {
@@ -99,8 +101,8 @@ describe("assertValidTransition", () => {
     let errorMessage = "";
     try {
       assertValidTransition("fixed", "pending");
-    } catch (e) {
-      errorMessage = (e as Error).message;
+    } catch (error) {
+      errorMessage = (error as Error).message;
     }
     expect(errorMessage).toContain("fixed");
     expect(errorMessage).toContain("pending");
@@ -110,8 +112,8 @@ describe("assertValidTransition", () => {
     let errorMessage = "";
     try {
       assertValidTransition("skipped", "claimed");
-    } catch (e) {
-      errorMessage = (e as Error).message;
+    } catch (error) {
+      errorMessage = (error as Error).message;
     }
     expect(errorMessage).toContain("skipped");
     expect(errorMessage).toContain("claimed");

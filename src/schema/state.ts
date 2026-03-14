@@ -8,9 +8,9 @@
  *           → stale
  */
 
-export type InboxStatus = "pending" | "claimed" | "fixed" | "skipped" | "stale";
+export type InboxStatus = "claimed" | "fixed" | "pending" | "skipped" | "stale";
 
-export const INBOX_STATUSES: ReadonlyArray<InboxStatus> = [
+export const INBOX_STATUSES: readonly InboxStatus[] = [
   "pending",
   "claimed",
   "fixed",
@@ -22,19 +22,12 @@ export const VALID_TRANSITIONS: ReadonlyMap<
   InboxStatus,
   ReadonlySet<InboxStatus>
 > = new Map([
-  ["pending", new Set<InboxStatus>(["claimed", "stale"])],
   ["claimed", new Set<InboxStatus>(["fixed", "skipped", "stale"])],
   ["fixed", new Set<InboxStatus>()],
+  ["pending", new Set<InboxStatus>(["claimed", "stale"])],
   ["skipped", new Set<InboxStatus>()],
   ["stale", new Set<InboxStatus>()],
 ]);
-
-export function isValidTransition(
-  from: InboxStatus,
-  to: InboxStatus,
-): boolean {
-  return VALID_TRANSITIONS.get(from)?.has(to) ?? false;
-}
 
 export function assertValidTransition(
   from: InboxStatus,
@@ -46,4 +39,11 @@ export function assertValidTransition(
         `Allowed transitions from "${from}": [${[...(VALID_TRANSITIONS.get(from) ?? [])].map((s) => `"${s}"`).join(", ") || "none"}].`,
     );
   }
+}
+
+export function isValidTransition(
+  from: InboxStatus,
+  to: InboxStatus,
+): boolean {
+  return VALID_TRANSITIONS.get(from)?.has(to) ?? false;
 }
