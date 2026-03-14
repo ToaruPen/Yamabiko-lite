@@ -129,9 +129,8 @@ docs/
 
 ## Next Phase
 
-The next phase is adoption hardening:
+The next phase is broader adoption hardening:
 
-- expose the ingestion flow as a reusable action
-- document installation in existing repositories
+- publish a stable tagged release for `uses: ToaruPen/Yamabiko-lite@<tag>`
 - package or distribute the `/check-inbox` skill beyond this repository
 - revisit CLI packaging after the reusable-action path is stable

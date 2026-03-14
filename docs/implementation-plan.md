@@ -35,14 +35,16 @@ Implemented today:
 - first repo-local `/check-inbox` command skill
 - strict validation, reconciliation, and retry behavior
 
-The main remaining gap is adoption. The system works inside this repository,
-but other repositories still need a clean installation path.
+The main remaining gap is broader distribution and packaging. The system now
+works as a reusable action inside this repository, but external adoption still
+needs a stable release path and a distributable skill story.
 
-The next phase therefore focuses on distribution and operator ergonomics:
+The next phase therefore focuses on broader distribution and operator
+ergonomics:
 
-- expose ingestion as a reusable GitHub Action
-- document installation in existing repositories
-- define the first `/check-inbox` skill contract over the local CLI
+- publish a stable tagged release for the reusable action
+- package or distribute the `/check-inbox` skill beyond this repository
+- revisit standalone CLI packaging after the action path is stable
 
 ## V1 Scope
 
@@ -334,11 +336,9 @@ The first repository-local implementation now lives at:
 
 ### Phase 6: Distribution and adoption
 
-- add a root `action.yml` reusable action wrapper
-- move this repository's own review-ingest workflow to use that action
-- support env/input-driven inbox branch selection
-- document installation in existing repositories
+- publish and document a stable reusable-action release tag
 - package or distribute the `/check-inbox` skill beyond this repository
+- revisit standalone CLI packaging after the action path is stable
 
 ## Success Criteria
 
