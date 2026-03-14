@@ -1,5 +1,4 @@
 {
-  "entry": ["src/index.ts"],
-  "project": ["src/**/*.ts"],
-  "ignoreBinaries": ["eslint"]
+  "entry": ["src/index.ts", "src/actions/ingest.ts", "src/cli/main.ts", "src/**/*.test.ts"],
+  "project": ["src/**/*.ts", "!src/**/*.test.ts"]
 }
