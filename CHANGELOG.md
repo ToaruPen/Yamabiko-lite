@@ -9,6 +9,17 @@ Versioning for published releases.
 
 ### Changed
 
+
+## [0.1.4] - 2026-03-15
+
+### Changed
+
+- update workflow and adoption examples from `actions/checkout@v4` to `actions/checkout@v6` for Node 24 readiness
+
+## [0.1.3] - 2026-03-14
+
+### Changed
+
 - prepare the next release line as `0.1.3` in the source tree
 - add a timeout to the review-ingest workflow and adoption example
 - document current GitHub.com, non-fork, and CLI distribution boundaries more clearly
