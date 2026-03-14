@@ -11,7 +11,7 @@ export function extractDeduplicationKey(record: {
   }
 
   if (record.eventType === "pull_request_review_comment" || record.eventType === "issue_comment") {
-    if (!record.commentId) {
+    if (!Number.isInteger(record.commentId) || record.commentId <= 0) {
       throw new Error(`commentId is required for ${record.eventType} events`);
     }
     return record.commentId;

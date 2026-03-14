@@ -51,6 +51,7 @@ mock.module("../../actions/branch.ts", () => ({
   cleanupWorktree: mock(() => Promise.resolve()),
   commitAndPushInbox: mock(() => Promise.resolve(true)),
   ensureInboxBranch: mock(() => Promise.resolve("/tmp/fake")),
+  fetchInboxBranch: mock(() => Promise.resolve()),
   readFileFromBranch: mockReadFileFromBranch,
 }));
 

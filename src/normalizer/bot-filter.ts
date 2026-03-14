@@ -15,5 +15,8 @@ export function isBotUser(user: GitHubUser): boolean {
 
 export function parseBotAllowlist(environmentValue: string): string[] {
   if (environmentValue.trim() === "") return [];
-  return environmentValue.split(",").map((entry) => entry.trim());
+  return environmentValue
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
 }

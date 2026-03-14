@@ -50,92 +50,23 @@ interface IngestContext {
 type ResolvedIngestDeps = Required<IngestDeps>;
 
 export async function ingest(options: IngestOptions, deps: IngestDeps = {}): Promise<IngestResult> {
-  const {
-    cleanupWorktree,
-    commitAndPushInbox,
-    ensureInboxBranch,
-    fetchPullRequestHeadSha,
-    generateMarkdownSummary,
-    readFileFromBranch,
-    reconcilePullRequest,
-    writeJsonlFile,
-  } = resolveIngestDeps(deps);
+  const resolved = resolveIngestDeps(deps);
 
   const context = extractContext(options.eventType, options.eventPayload);
-  if (context === undefined) return { added: 0, totalRecords: 0, unchanged: 0, updated: 0 };
+  if (context === undefined) return emptyResult();
 
-  const jsonlPath = `.yamabiko-lite/inbox/${context.owner}/${context.repo}/pr-${String(context.prNumber)}.jsonl`;
-  const mdPath = `.yamabiko-lite/inbox/${context.owner}/${context.repo}/pr-${String(context.prNumber)}.md`;
-  const worktreePath = await ensureInboxBranch(options.branchName);
+  const worktreePath = await resolved.ensureInboxBranch(options.branchName);
 
   try {
-    const existingJsonl = await readFileFromBranch(options.branchName, jsonlPath);
-    const existingRecords = existingJsonl ? parseInboxRecords(existingJsonl) : [];
-
-    const rawLineCount = existingJsonl
-      ? existingJsonl
-          .trim()
-          .split("\n")
-          .filter((line) => line.trim() !== "").length
-      : 0;
-    if (existingRecords.length < rawLineCount) {
-      throw new Error(
-        `JSONL integrity check failed: parsed ${String(existingRecords.length)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
-      );
-    }
-    const headSha =
-      context.reviewHeadSha ??
-      (await fetchPullRequestHeadSha(context.owner, context.repo, context.prNumber, options.token));
-
-    const reconciled = await reconcilePullRequest({
-      allowlist: options.allowlist,
-      existingRecords,
-      headSha,
-      owner: context.owner,
-      prNumber: context.prNumber,
-      repo: context.repo,
-      token: options.token,
-    });
-
-    const worktreeJsonlPath = path.join(worktreePath, jsonlPath);
-    await mkdir(path.dirname(worktreeJsonlPath), { recursive: true });
-    await writeJsonlFile(worktreeJsonlPath, reconciled.records);
-
-    const markdown = generateMarkdownSummary(reconciled.records, context.prNumber, {
-      name: context.repo,
-      owner: context.owner,
-    });
-    await Bun.write(path.join(worktreePath, mdPath), markdown);
-    await commitAndPushInbox(
-      worktreePath,
-      options.branchName,
-      `ingest: PR #${String(context.prNumber)}`,
-    );
-
-    return {
-      added: reconciled.added,
-      totalRecords: reconciled.records.length,
-      unchanged: reconciled.unchanged,
-      updated: reconciled.updated,
-    };
+    return await runIngestion(options, context, worktreePath, resolved);
   } finally {
     try {
-      await cleanupWorktree(worktreePath);
+      await resolved.cleanupWorktree(worktreePath);
     } catch (cleanupError: unknown) {
       const cleanupMessage =
         cleanupError instanceof Error ? cleanupError.message : String(cleanupError);
       console.error(`Warning: worktree cleanup failed: ${cleanupMessage}`);
     }
-  }
-}
-
-if (import.meta.main) {
-  try {
-    await main();
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(message);
-    process.exitCode = 1;
   }
 }
 
@@ -170,6 +101,20 @@ function asObject(value: unknown): Record<string, unknown> {
     return value as Record<string, unknown>;
   }
   throw new TypeError("Invalid event payload: object expected");
+}
+
+if (import.meta.main) {
+  try {
+    await main();
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exitCode = 1;
+  }
+}
+
+function emptyResult(): IngestResult {
+  return { added: 0, totalRecords: 0, unchanged: 0, updated: 0 };
 }
 
 function extractContext(eventType: string, eventPayload: unknown): IngestContext | undefined {
@@ -219,9 +164,82 @@ function resolveIngestDeps(deps: IngestDeps): ResolvedIngestDeps {
   };
 }
 
+async function runIngestion(
+  options: IngestOptions,
+  context: IngestContext,
+  worktreePath: string,
+  deps: ResolvedIngestDeps,
+): Promise<IngestResult> {
+  const jsonlPath = `.yamabiko-lite/inbox/${context.owner}/${context.repo}/pr-${String(context.prNumber)}.jsonl`;
+  const mdPath = `.yamabiko-lite/inbox/${context.owner}/${context.repo}/pr-${String(context.prNumber)}.md`;
+
+  const existingJsonl = await deps.readFileFromBranch(options.branchName, jsonlPath);
+  const existingRecords = existingJsonl ? parseInboxRecords(existingJsonl) : [];
+
+  validateJsonlIntegrity(existingJsonl, existingRecords.length);
+
+  const headSha =
+    context.reviewHeadSha ??
+    (await deps.fetchPullRequestHeadSha(
+      context.owner,
+      context.repo,
+      context.prNumber,
+      options.token,
+    ));
+
+  const reconciled = await deps.reconcilePullRequest({
+    allowlist: options.allowlist,
+    existingRecords,
+    headSha,
+    owner: context.owner,
+    prNumber: context.prNumber,
+    repo: context.repo,
+    token: options.token,
+  });
+
+  if (reconciled.records.length === 0 && existingRecords.length === 0) {
+    return emptyResult();
+  }
+
+  const worktreeJsonlPath = path.join(worktreePath, jsonlPath);
+  await mkdir(path.dirname(worktreeJsonlPath), { recursive: true });
+  await deps.writeJsonlFile(worktreeJsonlPath, reconciled.records);
+
+  const markdown = deps.generateMarkdownSummary(reconciled.records, context.prNumber, {
+    name: context.repo,
+    owner: context.owner,
+  });
+  await Bun.write(path.join(worktreePath, mdPath), markdown);
+  await deps.commitAndPushInbox(
+    worktreePath,
+    options.branchName,
+    `ingest: PR #${String(context.prNumber)}`,
+  );
+
+  return {
+    added: reconciled.added,
+    totalRecords: reconciled.records.length,
+    unchanged: reconciled.unchanged,
+    updated: reconciled.updated,
+  };
+}
+
 function toPullRequestNumber(value: unknown): number {
   if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
     throw new Error("Invalid event payload: pull request number missing");
   }
   return value;
+}
+
+function validateJsonlIntegrity(content: null | string, parsedCount: number): void {
+  if (content === null) return;
+  const rawLineCount = content
+    .trim()
+    .split("\n")
+    .filter((line) => line.trim() !== "").length;
+  if (parsedCount < rawLineCount) {
+    throw new Error(
+      `JSONL integrity check failed: parsed ${String(parsedCount)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
+    );
+  }
 }
