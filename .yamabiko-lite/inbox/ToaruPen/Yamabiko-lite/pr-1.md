@@ -1,6 +1,6 @@
 # Inbox Summary: ToaruPen/Yamabiko-lite PR #1
 
-**40** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
+**42** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
@@ -44,3 +44,5 @@
 | pending | github-pull_request_review_comment-2935013565 | coderabbitai[bot] | src/actions/branch.test.ts:375 | _⚠️ Potential issue_ \| _🟡 Minor_  **cleanupWorktree のエラーテストにも `await` が必要です。** ... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2935013565) |
 | pending | github-issue_comment-4060132116 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> <details> <summary>✅ Acti... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4060132116) |
 | pending | github-pull_request_review-3948532545 | coderabbitai[bot] |  |   <details> <summary>🧹 Nitpick comments (2)</summary><blockquote>  <details> <s... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948532545) |
+| pending | github-pull_request_review-3948573632 | coderabbitai[bot] |  |   <details> <summary>🧹 Nitpick comments (1)</summary><blockquote>  <details> <s... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948573632) |
+| pending | github-issue_comment-4060189396 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> `@ToaruPen`: Sure! Trigge... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4060189396) |
