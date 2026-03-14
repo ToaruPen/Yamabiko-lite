@@ -142,6 +142,47 @@ async function acquireInboxMutationLock(
   throw new Error(buildLockErrorMessage(target));
 }
 
+async function acquireRecoveryLock(
+  recoveryLockPath: string,
+  metadata: LockMetadata,
+  isProcessAlive: (pid: number) => boolean,
+  openLockFile: (path: PathLike, flags?: number | string) => Promise<LockHandle>,
+  readLockFile: typeof readFile,
+  removeLockFile: typeof rm,
+): Promise<LockHandle | undefined> {
+  for (let attempt = 0; attempt < LOCK_ACQUIRE_ATTEMPTS; attempt++) {
+    let recoveryHandle: LockHandle | undefined;
+
+    try {
+      recoveryHandle = await openLockFile(recoveryLockPath, "wx");
+      await recoveryHandle.writeFile(JSON.stringify(metadata));
+      return recoveryHandle;
+    } catch (error) {
+      if (recoveryHandle) {
+        await closeLockHandleSafely(recoveryHandle);
+        await removeLockFileIfPresent(recoveryLockPath, removeLockFile);
+      }
+
+      if (!isLockAlreadyHeldError(error)) {
+        throw error;
+      }
+
+      const existingMetadata = await readLockMetadata(recoveryLockPath, readLockFile);
+      if (existingMetadata === undefined) {
+        continue;
+      }
+
+      if (existingMetadata.hostname !== metadata.hostname || isProcessAlive(existingMetadata.pid)) {
+        return undefined;
+      }
+
+      await removeLockFileIfPresent(recoveryLockPath, removeLockFile);
+    }
+  }
+
+  return undefined;
+}
+
 function buildLockCleanupWarning(
   phase: "close" | "remove",
   cleanupError: unknown,
@@ -246,16 +287,16 @@ async function recoverInboxMutationLock(
   removeLockFile: typeof rm,
 ): Promise<"held" | "retry"> {
   const recoveryLockPath = `${lockPath}.recover`;
-  let recoveryHandle: LockHandle | undefined;
-
-  try {
-    recoveryHandle = await openLockFile(recoveryLockPath, "wx");
-  } catch (error) {
-    if (isLockAlreadyHeldError(error)) {
-      return "held";
-    }
-
-    throw error;
+  const recoveryHandle = await acquireRecoveryLock(
+    recoveryLockPath,
+    metadata,
+    isProcessAlive,
+    openLockFile,
+    readLockFile,
+    removeLockFile,
+  );
+  if (!recoveryHandle) {
+    return "held";
   }
 
   try {

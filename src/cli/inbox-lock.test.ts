@@ -275,6 +275,41 @@ describe("withInboxMutationLock", () => {
     );
   });
 
+  it("recovers stale recovery locks for dead local processes", async () => {
+    const lockDirectory = path.join(rootDirectory, "yamabiko-lite", "locks");
+    const lockPath = path.join(lockDirectory, "yamabiko-lite-inbox--owner--repo--pr-1.lock");
+    const recoveryLockPath = `${lockPath}.recover`;
+
+    await mkdir(lockDirectory, { recursive: true });
+    await writeFile(
+      lockPath,
+      JSON.stringify({ hostname: "test-host", pid: 111, token: "stale-main" }),
+    );
+    await writeFile(
+      recoveryLockPath,
+      JSON.stringify({ hostname: "test-host", pid: 111, token: "stale-recovery" }),
+    );
+
+    const result = await withInboxMutationLock(
+      {
+        branch: "yamabiko-lite-inbox",
+        owner: "owner",
+        prNumber: 1,
+        repo: "repo",
+      },
+      async () => "recovered",
+      {
+        getGitCommonDirectory: async () => rootDirectory,
+        getHostname: () => "test-host",
+        getPid: () => 123,
+        isProcessAlive: (pid) => pid === 123,
+      },
+    );
+
+    expect(result).toBe("recovered");
+    expect(await readdir(lockDirectory)).toEqual([]);
+  });
+
   it("does not delete a newer lock file during cleanup", async () => {
     const lockDirectory = path.join(rootDirectory, "yamabiko-lite", "locks");
     const lockPath = path.join(lockDirectory, "yamabiko-lite-inbox--owner--repo--pr-1.lock");
