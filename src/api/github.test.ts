@@ -43,18 +43,22 @@ const sampleReview: GitHubReview = {
 const sampleReviewComment: GitHubReviewComment = {
   body: "This branch can be simplified.",
   commit_id: "abc123",
+  created_at: "2025-01-15T10:01:00Z",
   html_url: "https://github.com/sankenbisha/yamabiko-lite/pull/42#discussion_r2001",
   id: 2001,
   line: 42,
   path: "src/cli/main.ts",
   pull_request_review_id: 1001,
+  updated_at: "2025-01-15T10:02:00Z",
   user: { id: 100, login: "coderabbitai[bot]", type: "Bot" },
 };
 
 const sampleIssueComment: GitHubIssueComment = {
   body: "General note: add test coverage.",
+  created_at: "2025-01-15T10:03:00Z",
   html_url: "https://github.com/sankenbisha/yamabiko-lite/pull/42#issuecomment-3001",
   id: 3001,
+  updated_at: "2025-01-15T10:04:00Z",
   user: { id: 100, login: "coderabbitai[bot]", type: "Bot" },
 };
 
@@ -142,11 +146,29 @@ describe("error handling", () => {
     );
   });
 
-  it("throws rate limit message on 403 response", async () => {
-    mockFetch(async () => jsonResponse({ message: "API rate limit exceeded" }, { status: 403 }));
+  it("throws rate limit message on 403 when X-RateLimit-Remaining is 0", async () => {
+    mockFetch(async () =>
+      jsonResponse(
+        { message: "API rate limit exceeded" },
+        { headers: { "X-RateLimit-Remaining": "0" }, status: 403 },
+      ),
+    );
 
     await expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
       "Rate limit exceeded",
+    );
+  });
+
+  it("throws access forbidden message on 403 when rate limit remains", async () => {
+    mockFetch(async () =>
+      jsonResponse(
+        { message: "Resource not accessible by integration" },
+        { headers: { "X-RateLimit-Remaining": "57" }, status: 403 },
+      ),
+    );
+
+    await expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
+      "Access forbidden: Resource not accessible by integration",
     );
   });
 });

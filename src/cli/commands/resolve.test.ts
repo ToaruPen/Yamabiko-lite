@@ -151,6 +151,28 @@ describe("inbox resolve", () => {
     ).rejects.toThrow('Invalid resolve status: "stale". Must be "fixed" or "skipped".');
   });
 
+  test("rejects non-positive or non-integer PR numbers", async () => {
+    await expect(
+      runResolve({
+        branch: "yamabiko-lite-inbox",
+        id: "github-pull_request_review_comment-400",
+        pr: "0",
+        repo: "owner/repo",
+        status: "fixed",
+      }),
+    ).rejects.toThrow("Invalid PR number: 0");
+
+    await expect(
+      runResolve({
+        branch: "yamabiko-lite-inbox",
+        id: "github-pull_request_review_comment-400",
+        pr: "1.5",
+        repo: "owner/repo",
+        status: "fixed",
+      }),
+    ).rejects.toThrow("Invalid PR number: 1.5");
+  });
+
   test("errors when ID is not found", async () => {
     const record = makeRecord({
       id: "github-pull_request_review_comment-999",

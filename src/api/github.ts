@@ -2,8 +2,10 @@ const GITHUB_API_BASE = "https://api.github.com";
 
 export interface GitHubIssueComment {
   body: string;
+  created_at: string;
   html_url: string;
   id: number;
+  updated_at: string;
   user: { id: number; login: string; type: string };
 }
 
@@ -20,12 +22,14 @@ export interface GitHubReview {
 export interface GitHubReviewComment {
   body: string;
   commit_id: string;
+  created_at: string;
   html_url: string;
   id: number;
   in_reply_to_id?: number;
   line: null | number;
   path: string;
   pull_request_review_id: number;
+  updated_at: string;
   user: { id: number; login: string; type: string };
 }
 
@@ -67,7 +71,7 @@ export async function fetchPullRequestHeadSha(
   });
 
   if (!response.ok) {
-    handleErrorResponse(response);
+    await handleErrorResponse(response);
   }
 
   const data = (await response.json()) as PullRequestResponse;
@@ -91,6 +95,21 @@ function buildHeaders(token: string): Record<string, string> {
   };
 }
 
+async function extractErrorMessage(response: Response): Promise<string | undefined> {
+  const responseText = await response.text();
+  const bodyText = responseText.trim();
+  if (bodyText === "") {
+    return undefined;
+  }
+
+  try {
+    const parsedBody = JSON.parse(bodyText) as { message?: unknown };
+    return typeof parsedBody.message === "string" ? parsedBody.message : bodyText;
+  } catch {
+    return bodyText;
+  }
+}
+
 async function fetchAllPages<T>(url: string, token: string): Promise<T[]> {
   const results: T[] = [];
   let nextUrl: string | undefined = url;
@@ -102,7 +121,7 @@ async function fetchAllPages<T>(url: string, token: string): Promise<T[]> {
     });
 
     if (!response.ok) {
-      handleErrorResponse(response);
+      await handleErrorResponse(response);
     }
 
     const data = (await response.json()) as T[];
@@ -115,13 +134,20 @@ async function fetchAllPages<T>(url: string, token: string): Promise<T[]> {
   return results;
 }
 
-function handleErrorResponse(response: Response): never {
+async function handleErrorResponse(response: Response): Promise<never> {
   if (response.status === 404) {
     throw new Error("PR not found");
   }
+
   if (response.status === 403) {
-    throw new Error("Rate limit exceeded");
+    if (response.headers.get("X-RateLimit-Remaining") === "0") {
+      throw new Error("Rate limit exceeded");
+    }
+
+    const message = (await extractErrorMessage(response)) ?? "Forbidden";
+    throw new Error(`Access forbidden: ${message}`);
   }
+
   throw new Error(`GitHub API error: ${response.status.toString()}`);
 }
 

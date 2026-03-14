@@ -142,6 +142,21 @@ describe("generateMarkdownSummary", () => {
       expect(md).toContain(exactBody);
       expect(md).not.toContain(exactBody + "...");
     });
+
+    it("escapes pipe and replaces newlines in table summary cells", () => {
+      const records = [
+        makeRecord({
+          body: "line one | line two\nline three",
+          id: "escape-1",
+          status: "pending",
+        }),
+      ];
+
+      const md = generateMarkdownSummary(records, 1, REPO);
+
+      expect(md).toContain(String.raw`line one \| line two line three`);
+      expect(md).not.toContain("line two\nline three");
+    });
   });
 
   describe("counts accuracy", () => {

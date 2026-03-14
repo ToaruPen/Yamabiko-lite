@@ -1,4 +1,4 @@
-import type { InboxRecord } from "../schema/inbox-record.js";
+import type { InboxRecord } from "../schema/inbox-record.ts";
 
 export function upsertRecord(
   existing: readonly InboxRecord[],

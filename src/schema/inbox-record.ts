@@ -10,6 +10,10 @@ import {
   union,
 } from "valibot";
 
+import type { InboxStatus } from "./state.ts";
+
+import { INBOX_STATUSES } from "./state.ts";
+
 export interface InboxRecord {
   body: string;
   botLogin: string;
@@ -28,7 +32,7 @@ export interface InboxRecord {
   };
   reviewId?: number;
   source: string;
-  status: "claimed" | "fixed" | "pending" | "skipped" | "stale";
+  status: InboxStatus;
   updatedAt: string;
 }
 
@@ -38,13 +42,14 @@ const EventTypeSchema = union([
   literal("issue_comment"),
 ]);
 
-const StatusSchema = union([
-  literal("pending"),
-  literal("claimed"),
-  literal("fixed"),
-  literal("skipped"),
-  literal("stale"),
-]);
+const statusLiterals = INBOX_STATUSES.map((status) => literal(status));
+const [firstStatusLiteral, ...remainingStatusLiterals] = statusLiterals;
+
+if (firstStatusLiteral === undefined) {
+  throw new Error("INBOX_STATUSES must contain at least one status");
+}
+
+const StatusSchema = union([firstStatusLiteral, ...remainingStatusLiterals]);
 
 const InboxRecordSchema = object({
   body: string(),

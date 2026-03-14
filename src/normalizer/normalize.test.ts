@@ -36,22 +36,24 @@ describe("normalizeReviewEvent", () => {
       botLogin: "coderabbitai[bot]",
       commentId: 710_001,
       commentUrl: "https://github.com/sankenbisha/yamabiko-lite/pull/42#pullrequestreview-710001",
+      createdAt: "2026-03-14T00:00:00Z",
       eventType: "pull_request_review",
-      headSha: "2222222222222222222222222222222222222222",
+      headSha: "1111111111111111111111111111111111111111",
       id: "github-pull_request_review-710001",
       pullRequestNumber: 42,
       repository: { name: "yamabiko-lite", owner: "sankenbisha" },
       reviewId: 710_001,
       source: "github",
       status: "pending",
+      updatedAt: "2026-03-14T00:00:00Z",
     });
   });
 
-  it("uses pull_request.head.sha instead of review.commit_id", () => {
+  it("uses review.commit_id instead of pull_request.head.sha", () => {
     const record = normalizeReviewEvent(reviewFixture);
 
-    expect(record?.headSha).toBe("2222222222222222222222222222222222222222");
-    expect(record?.headSha).not.toBe("1111111111111111111111111111111111111111");
+    expect(record?.headSha).toBe("1111111111111111111111111111111111111111");
+    expect(record?.headSha).not.toBe("2222222222222222222222222222222222222222");
   });
 });
 
@@ -64,8 +66,9 @@ describe("normalizeReviewCommentEvent", () => {
       botLogin: "coderabbitai[bot]",
       commentId: 820_002,
       commentUrl: "https://github.com/sankenbisha/yamabiko-lite/pull/42#discussion_r820002",
+      createdAt: "2026-03-14T00:05:00Z",
       eventType: "pull_request_review_comment",
-      headSha: "4444444444444444444444444444444444444444",
+      headSha: "3333333333333333333333333333333333333333",
       id: "github-pull_request_review_comment-820002",
       line: 120,
       path: "src/cli/check-inbox.ts",
@@ -74,6 +77,7 @@ describe("normalizeReviewCommentEvent", () => {
       reviewId: 710_001,
       source: "github",
       status: "pending",
+      updatedAt: "2026-03-14T00:06:00Z",
     });
   });
 });
@@ -87,6 +91,7 @@ describe("normalizeIssueCommentEvent", () => {
       botLogin: "coderabbitai[bot]",
       commentId: 830_003,
       commentUrl: "https://github.com/sankenbisha/yamabiko-lite/pull/42#issuecomment-830003",
+      createdAt: "2026-03-14T00:10:00Z",
       eventType: "issue_comment",
       headSha: providedHeadSha,
       id: "github-issue_comment-830003",
@@ -94,6 +99,7 @@ describe("normalizeIssueCommentEvent", () => {
       repository: { name: "yamabiko-lite", owner: "sankenbisha" },
       source: "github",
       status: "pending",
+      updatedAt: "2026-03-14T00:12:00Z",
     });
   });
 });
@@ -134,15 +140,10 @@ describe("normalizeEvent", () => {
     expect(normalizeEvent("issue_comment", issueCommentFixture)).toBeNull();
   });
 
-  it("sets createdAt and updatedAt as ISO strings", () => {
+  it("uses server-provided timestamps for reviews", () => {
     const record = normalizeEvent("pull_request_review", reviewFixture);
 
-    expect(record).not.toBeNull();
-
-    const createdAtIso = new Date(record!.createdAt).toISOString();
-    const updatedAtIso = new Date(record!.updatedAt).toISOString();
-
-    expect(record?.createdAt).toBe(createdAtIso);
-    expect(record?.updatedAt).toBe(updatedAtIso);
+    expect(record?.createdAt).toBe("2026-03-14T00:00:00Z");
+    expect(record?.updatedAt).toBe("2026-03-14T00:00:00Z");
   });
 });

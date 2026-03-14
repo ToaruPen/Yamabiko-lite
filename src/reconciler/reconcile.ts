@@ -124,7 +124,7 @@ function normalizeReviewComments(
       action: "created",
       comment: { ...comment, user },
       pull_request: {
-        head: { ref: "", sha: options.headSha },
+        head: { ref: "", sha: comment.commit_id },
         number: options.prNumber,
         state: "open",
       },
@@ -146,7 +146,7 @@ function normalizeReviews(
     const record = normalizeReviewEvent({
       action: "submitted",
       pull_request: {
-        head: { ref: "", sha: options.headSha },
+        head: { ref: "", sha: review.commit_id },
         number: options.prNumber,
         state: "open",
       },

@@ -43,8 +43,10 @@ function makeExistingRecord(overrides: Partial<InboxRecord> = {}): InboxRecord {
 function makeIssueComment(overrides: Partial<GitHubIssueComment> = {}): GitHubIssueComment {
   return {
     body: "issue comment body",
+    created_at: "2026-03-14T00:01:00Z",
     html_url: "https://github.com/acme/yamabiko-lite/pull/42#issuecomment-3",
     id: 1,
+    updated_at: "2026-03-14T00:02:00Z",
     user: { id: 12, login: "coderabbitai[bot]", type: "Bot" },
     ...overrides,
   };
@@ -67,11 +69,13 @@ function makeReviewComment(overrides: Partial<GitHubReviewComment> = {}): GitHub
   return {
     body: "review comment body",
     commit_id: "comment-commit",
+    created_at: "2026-03-14T00:03:00Z",
     html_url: "https://github.com/acme/yamabiko-lite/pull/42#discussion_r2",
     id: 3,
     line: 12,
     path: "src/index.ts",
     pull_request_review_id: 1,
+    updated_at: "2026-03-14T00:04:00Z",
     user: { id: 11, login: "coderabbitai[bot]", type: "Bot" },
     ...overrides,
   };
@@ -89,6 +93,20 @@ describe("reconcilePullRequest", () => {
     expect(result.added).toBe(3);
     expect(result.updated).toBe(0);
     expect(result.unchanged).toBe(0);
+
+    const reviewRecord = result.records.find(
+      (record) => record.eventType === "pull_request_review",
+    );
+    const reviewCommentRecord = result.records.find(
+      (record) => record.eventType === "pull_request_review_comment",
+    );
+    const issueCommentRecord = result.records.find(
+      (record) => record.eventType === "issue_comment",
+    );
+
+    expect(reviewRecord?.headSha).toBe("review-commit");
+    expect(reviewCommentRecord?.headSha).toBe("comment-commit");
+    expect(issueCommentRecord?.headSha).toBe(baseOptions.headSha);
   });
 
   it("reports one updated and one unchanged when one existing record matches API payload", async () => {

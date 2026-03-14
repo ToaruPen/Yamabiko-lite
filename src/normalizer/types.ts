@@ -14,8 +14,10 @@ export interface IssueCommentEvent {
   action: "created" | "deleted" | "edited";
   comment: {
     body: string;
+    created_at?: string;
     html_url: string;
     id: number;
+    updated_at?: string;
     user: GitHubUser;
   };
   issue: {
@@ -34,12 +36,14 @@ export interface PullRequestReviewCommentEvent {
   comment: {
     body: string;
     commit_id: string;
+    created_at?: string;
     html_url: string;
     id: number;
     in_reply_to_id?: number;
     line: null | number;
     path: string;
     pull_request_review_id: number;
+    updated_at?: string;
     user: GitHubUser;
   };
   pull_request: {

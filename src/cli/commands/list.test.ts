@@ -6,9 +6,15 @@ function buildJsonl(records: InboxRecord[]): string {
   return records.map((r) => JSON.stringify(r)).join("\n") + "\n";
 }
 
-function createMockSubprocess(standardOutput: string, exitCode: number) {
+function createMockSubprocess(standardOutput: string, exitCode: number, standardError = "") {
   return {
     exited: Promise.resolve(exitCode),
+    stderr: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(standardError));
+        controller.close();
+      },
+    }),
     stdout: new ReadableStream({
       start(controller) {
         controller.enqueue(new TextEncoder().encode(standardOutput));
@@ -81,6 +87,12 @@ describe("readInboxFromBranch", () => {
     const result = await readInboxFromBranch("yamabiko-lite-inbox", "OWNER/REPO", 42);
 
     expect(result).toEqual([]);
+  });
+
+  it("throws for invalid repo format", async () => {
+    await expect(
+      readInboxFromBranch("yamabiko-lite-inbox", "OWNER/REPO/EXTRA", 42),
+    ).rejects.toThrow('Invalid repo format: "OWNER/REPO/EXTRA". Expected "owner/repo".');
   });
 });
 
@@ -207,7 +219,7 @@ describe("listInboxItems", () => {
     expect(parsed).toHaveLength(3);
   });
 
-  it("shows 'No pending inbox items' when no records match", async () => {
+  it("shows 'No inbox items found' when no records match", async () => {
     // eslint-disable-next-line unicorn/no-null -- matching readFileFromBranch API
     mockReadFileFromBranch.mockImplementation(() => Promise.resolve(null));
     spawnMock = spyOn(Bun, "spawn").mockImplementation(
@@ -224,6 +236,24 @@ describe("listInboxItems", () => {
     });
 
     const output = logMock.mock.calls[0]![0] as string;
-    expect(output).toContain("No pending inbox items for PR #42");
+    expect(output).toContain("No inbox items found for PR #42");
+  });
+
+  it("throws when git rev-parse exits non-zero", async () => {
+    const records = [makeRecord({ commentId: 1, id: "rec-1" })];
+    mockReadFileFromBranch.mockImplementation(() => Promise.resolve(buildJsonl(records).trim()));
+    spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("", 128, "fatal: not a git repository") as any,
+    );
+
+    await expect(
+      listInboxItems({
+        branch: "yamabiko-lite-inbox",
+        includeStale: false,
+        json: false,
+        pr: 42,
+        repo: "OWNER/REPO",
+      }),
+    ).rejects.toThrow("Failed to get current HEAD SHA: fatal: not a git repository");
   });
 });

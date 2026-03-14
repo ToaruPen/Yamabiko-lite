@@ -44,7 +44,13 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
   const suffix = `${String(Date.now())}-${Math.random().toString(36).slice(2, 10)}`;
   const worktreePath = `/tmp/yamabiko-inbox-${suffix}`;
 
-  const { stdout } = await runGit(["ls-remote", "--heads", "origin", branchName]);
+  const { exitCode, stderr, stdout } = await runGit(["ls-remote", "--heads", "origin", branchName]);
+
+  if (exitCode !== 0) {
+    throw new Error(
+      `git ls-remote failed for branch "${branchName}": ${stderr || `exit code ${String(exitCode)}`}`,
+    );
+  }
 
   if (stdout.trim()) {
     await runGit(["fetch", "origin", `${branchName}:${branchName}`]);
@@ -60,7 +66,9 @@ export async function readFileFromBranch(
   branchName: string,
   filePath: string,
 ): Promise<null | string> {
-  const { exitCode, stdout } = await runGit(["show", `${branchName}:${filePath}`]);
+  const { exitCode, stdout } = await runGit(["show", `${branchName}:${filePath}`], {
+    trimStdout: false,
+  });
 
   if (exitCode === 128) {
     // eslint-disable-next-line unicorn/no-null -- API contract: null signals missing file
@@ -72,8 +80,8 @@ export async function readFileFromBranch(
 
 async function runGit(
   gitArguments: string[],
-  options?: { workingDirectory?: string },
-): Promise<{ exitCode: number; stdout: string }> {
+  options?: { trimStdout?: boolean; workingDirectory?: string },
+): Promise<{ exitCode: number; stderr: string; stdout: string }> {
   const subprocess = Bun.spawn(
     ["git", ...gitArguments],
     options?.workingDirectory
@@ -81,8 +89,15 @@ async function runGit(
       : { stderr: "pipe", stdout: "pipe" },
   );
 
-  const stdoutText = await new Response(subprocess.stdout).text();
-  const exitCode = await subprocess.exited;
+  const [stderrText, stdoutText, exitCode] = await Promise.all([
+    new Response(subprocess.stderr).text(),
+    new Response(subprocess.stdout).text(),
+    subprocess.exited,
+  ]);
 
-  return { exitCode, stdout: stdoutText.trim() };
+  return {
+    exitCode,
+    stderr: stderrText.trim(),
+    stdout: options?.trimStdout === false ? stdoutText : stdoutText.trim(),
+  };
 }

@@ -15,6 +15,7 @@ interface ListOptions {
 }
 
 export async function listInboxItems(options: ListOptions): Promise<void> {
+  const { name, owner } = parseRepo(options.repo);
   const records = await readInboxFromBranch(options.branch, options.repo, options.pr);
   const headSha = await getCurrentHeadSha();
 
@@ -28,13 +29,10 @@ export async function listInboxItems(options: ListOptions): Promise<void> {
   }
 
   if (filtered.length === 0) {
-    console.log(`No pending inbox items for PR #${String(options.pr)}`);
+    console.log(`No inbox items found for PR #${String(options.pr)}`);
     return;
   }
 
-  const separatorIndex = options.repo.indexOf("/");
-  const owner = options.repo.slice(0, separatorIndex);
-  const name = options.repo.slice(separatorIndex + 1);
   console.log(generateMarkdownSummary(filtered, options.pr, { name, owner }));
 }
 
@@ -43,9 +41,7 @@ export async function readInboxFromBranch(
   repoPath: string,
   prNumber: number,
 ): Promise<InboxRecord[]> {
-  const separatorIndex = repoPath.indexOf("/");
-  const owner = repoPath.slice(0, separatorIndex);
-  const name = repoPath.slice(separatorIndex + 1);
+  const { name, owner } = parseRepo(repoPath);
   const jsonlPath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${String(prNumber)}.jsonl`;
 
   const content = await readFileFromBranch(branch, jsonlPath);
@@ -92,7 +88,7 @@ export default defineCommand({
     const repo = args.repo || (await inferRepoFromRemote());
     const prNumber = Number(args.pr);
 
-    if (Number.isNaN(prNumber) || prNumber <= 0) {
+    if (!Number.isInteger(prNumber) || prNumber <= 0) {
       throw new Error(`Invalid PR number: ${args.pr}`);
     }
 
@@ -111,8 +107,18 @@ async function getCurrentHeadSha(): Promise<string> {
     stderr: "pipe",
     stdout: "pipe",
   });
-  const stdout = await new Response(subprocess.stdout).text();
-  await subprocess.exited;
+  const [stderr, stdout, exitCode] = await Promise.all([
+    new Response(subprocess.stderr).text(),
+    new Response(subprocess.stdout).text(),
+    subprocess.exited,
+  ]);
+
+  if (exitCode !== 0) {
+    throw new Error(
+      `Failed to get current HEAD SHA: ${stderr.trim() || `exit code ${String(exitCode)}`}`,
+    );
+  }
+
   return stdout.trim();
 }
 
@@ -121,15 +127,42 @@ async function inferRepoFromRemote(): Promise<string> {
     stderr: "pipe",
     stdout: "pipe",
   });
-  const stdout = await new Response(subprocess.stdout).text();
-  await subprocess.exited;
+  const [stderr, stdout, exitCode] = await Promise.all([
+    new Response(subprocess.stderr).text(),
+    new Response(subprocess.stdout).text(),
+    subprocess.exited,
+  ]);
+
+  if (exitCode !== 0) {
+    throw new Error(
+      `Failed to infer repository from origin remote: ${stderr.trim() || `exit code ${String(exitCode)}`}`,
+    );
+  }
 
   const url = stdout.trim();
-  const match = /[/:]([^/]+)\/([^/.]+?)(?:\.git)?$/.exec(url);
+  const match = /[/:]([^/]+)\/([^/]+?)(?:\.git)?$/.exec(url);
 
   if (!match?.[1] || !match[2]) {
     throw new Error(`Cannot parse repository from remote URL: ${url}`);
   }
 
   return `${match[1]}/${match[2]}`;
+}
+
+function parseRepo(repo: string): { name: string; owner: string } {
+  const parts = repo.split("/");
+  const owner = parts[0];
+  const name = parts[1];
+
+  if (
+    parts.length !== 2 ||
+    owner === undefined ||
+    name === undefined ||
+    owner === "" ||
+    name === ""
+  ) {
+    throw new Error(`Invalid repo format: "${repo}". Expected "owner/repo".`);
+  }
+
+  return { name, owner };
 }

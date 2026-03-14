@@ -36,6 +36,10 @@ export function generateMarkdownSummary(
   return lines.join("\n");
 }
 
+function escapeTableCell(value: string): string {
+  return value.replaceAll("|", String.raw`\|`).replaceAll(/\r?\n/g, " ");
+}
+
 function formatCounts(records: readonly InboxRecord[]): string {
   const counts: Record<InboxStatus, number> = {
     claimed: 0,
@@ -70,7 +74,7 @@ function formatFileLine(record: InboxRecord): string {
 
 function formatRow(record: InboxRecord): string {
   const fileLine = formatFileLine(record);
-  const summary = truncateBody(record.body);
+  const summary = escapeTableCell(truncateBody(record.body));
   const link = `[comment](${record.commentUrl})`;
 
   return `| ${record.status} | ${record.id} | ${record.botLogin} | ${fileLine} | ${summary} | ${link} |`;

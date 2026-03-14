@@ -7,9 +7,15 @@ import {
   readFileFromBranch,
 } from "./branch.ts";
 
-function createMockSubprocess(standardOutput: string, exitCode: number) {
+function createMockSubprocess(standardOutput: string, exitCode: number, standardError = "") {
   return {
     exited: Promise.resolve(exitCode),
+    stderr: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(standardError));
+        controller.close();
+      },
+    }),
     stdout: new ReadableStream({
       start(controller) {
         controller.enqueue(new TextEncoder().encode(standardOutput));
@@ -27,7 +33,7 @@ describe("readFileFromBranch", () => {
 
     const result = await readFileFromBranch("inbox", "data.jsonl");
 
-    expect(result).toBe("file content here");
+    expect(result).toBe("file content here\n");
     expect(spawnMock).toHaveBeenCalledTimes(1);
 
     spawnMock.mockRestore();
@@ -151,6 +157,21 @@ describe("ensureInboxBranch", () => {
       callArguments[0]?.includes?.("--orphan"),
     );
     expect(orphanCall).toBeUndefined();
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws when git ls-remote exits non-zero", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("ls-remote")) {
+        return createMockSubprocess("", 2, "fatal: unable to access remote") as any;
+      }
+      return createMockSubprocess("", 0) as any;
+    });
+
+    await expect(ensureInboxBranch("yamabiko/inbox")).rejects.toThrow(
+      'git ls-remote failed for branch "yamabiko/inbox": fatal: unable to access remote',
+    );
 
     spawnMock.mockRestore();
   });

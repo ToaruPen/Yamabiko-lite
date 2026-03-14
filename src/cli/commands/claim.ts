@@ -51,14 +51,11 @@ export function applyClaimToRecords(records: InboxRecord[], id: string): ClaimRe
 
 async function claimInboxItem(options: ClaimOptions): Promise<string> {
   const { branch, id, pr, repo } = options;
-  const [owner, name] = repo.split("/");
+  const { name, owner } = parseRepo(repo);
+  const prNumber = parsePrNumber(pr);
 
-  if (!owner || !name) {
-    throw new Error(`Invalid repo format: "${repo}". Expected "owner/repo".`);
-  }
-
-  const jsonlRelativePath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${pr}.jsonl`;
-  const mdRelativePath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${pr}.md`;
+  const jsonlRelativePath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${String(prNumber)}.jsonl`;
+  const mdRelativePath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${String(prNumber)}.md`;
 
   const content = await readFileFromBranch(branch, jsonlRelativePath);
   const records = content ? parseInboxRecords(content) : [];
@@ -73,7 +70,7 @@ async function claimInboxItem(options: ClaimOptions): Promise<string> {
     await mkdir(path.dirname(jsonlFullPath), { recursive: true });
     await writeJsonlFile(jsonlFullPath, updatedRecords);
 
-    const markdown = generateMarkdownSummary(updatedRecords, Number(pr), { name, owner });
+    const markdown = generateMarkdownSummary(updatedRecords, prNumber, { name, owner });
     await Bun.write(mdFullPath, markdown);
 
     await commitAndPushInbox(worktreePath, branch, `claim: ${id}`);
@@ -83,6 +80,37 @@ async function claimInboxItem(options: ClaimOptions): Promise<string> {
 
   console.log(message);
   return message;
+}
+
+function parsePrNumber(pr: string): number {
+  const prNumber = Number(pr);
+  if (!Number.isInteger(prNumber) || prNumber <= 0) {
+    throw new Error(`Invalid PR number: "${pr}". Expected a positive integer.`);
+  }
+
+  return prNumber;
+}
+
+function parseRepo(repo: string): { name: string; owner: string } {
+  const parts = repo.split("/");
+  const owner = parts[0];
+  const name = parts[1];
+
+  if (
+    parts.length !== 2 ||
+    owner === undefined ||
+    name === undefined ||
+    owner === "" ||
+    name === ""
+  ) {
+    throw new Error(`Invalid repo format: "${repo}". Expected "owner/repo".`);
+  }
+
+  if (owner.includes("..") || name.includes("..") || owner.includes("\\") || name.includes("\\")) {
+    throw new Error(`Invalid repo path components: "${repo}".`);
+  }
+
+  return { name, owner };
 }
 
 export default defineCommand({

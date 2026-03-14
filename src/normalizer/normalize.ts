@@ -37,9 +37,13 @@ export function normalizeIssueCommentEvent(
 ): InboxRecord | null {
   const body = normalizeBody(event.comment.body);
   if (body === null || event.issue.pull_request === undefined) return null;
+  const fallbackTimestamp = new Date().toISOString();
 
   return {
-    ...baseRecord("issue_comment", event.comment.id),
+    ...baseRecord("issue_comment", event.comment.id, {
+      createdAt: event.comment.created_at ?? fallbackTimestamp,
+      updatedAt: event.comment.updated_at ?? fallbackTimestamp,
+    }),
     body,
     botLogin: event.comment.user.login,
     commentId: event.comment.id,
@@ -56,15 +60,19 @@ export function normalizeReviewCommentEvent(
 ): InboxRecord | null {
   const body = normalizeBody(event.comment.body);
   if (body === null) return null;
+  const fallbackTimestamp = new Date().toISOString();
 
   const record: InboxRecord = {
-    ...baseRecord("pull_request_review_comment", event.comment.id),
+    ...baseRecord("pull_request_review_comment", event.comment.id, {
+      createdAt: event.comment.created_at ?? fallbackTimestamp,
+      updatedAt: event.comment.updated_at ?? fallbackTimestamp,
+    }),
     body,
     botLogin: event.comment.user.login,
     commentId: event.comment.id,
     commentUrl: event.comment.html_url,
     eventType: "pull_request_review_comment",
-    headSha: event.pull_request.head.sha,
+    headSha: event.comment.commit_id || event.pull_request.head.sha,
     path: event.comment.path,
     pullRequestNumber: event.pull_request.number,
     repository: { name: event.repository.name, owner: event.repository.owner.login },
@@ -81,15 +89,19 @@ export function normalizeReviewCommentEvent(
 export function normalizeReviewEvent(event: PullRequestReviewEvent): InboxRecord | null {
   const body = normalizeBody(event.review.body);
   if (body === null) return null;
+  const fallbackTimestamp = new Date().toISOString();
 
   return {
-    ...baseRecord("pull_request_review", event.review.id),
+    ...baseRecord("pull_request_review", event.review.id, {
+      createdAt: event.review.submitted_at ?? fallbackTimestamp,
+      updatedAt: event.review.submitted_at ?? fallbackTimestamp,
+    }),
     body,
     botLogin: event.review.user.login,
     commentId: event.review.id,
     commentUrl: event.review.html_url,
     eventType: "pull_request_review",
-    headSha: event.pull_request.head.sha,
+    headSha: event.review.commit_id || event.pull_request.head.sha,
     pullRequestNumber: event.pull_request.number,
     repository: { name: event.repository.name, owner: event.repository.owner.login },
     reviewId: event.review.id,
@@ -99,6 +111,10 @@ export function normalizeReviewEvent(event: PullRequestReviewEvent): InboxRecord
 function baseRecord(
   eventType: InboxRecord["eventType"],
   sourceId: number,
+  timestamps?: {
+    createdAt?: null | string;
+    updatedAt?: null | string;
+  },
 ): {
   createdAt: string;
   id: string;
@@ -107,12 +123,14 @@ function baseRecord(
   updatedAt: string;
 } {
   const now = new Date().toISOString();
+  const createdAt = timestamps?.createdAt ?? now;
+  const updatedAt = timestamps?.updatedAt ?? now;
   return {
-    createdAt: now,
+    createdAt,
     id: generateRecordId("github", eventType, sourceId),
     source: "github",
     status: "pending",
-    updatedAt: now,
+    updatedAt,
   };
 }
 
