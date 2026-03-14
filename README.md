@@ -51,8 +51,8 @@ V1 is implemented and merged on `main`.
 - A repo-local `/check-inbox` command skill is implemented
 - Strict validation, retry, stale-head filtering, and integrity guards are in place
 
-The remaining gap is distribution: making the ingestion workflow easy to adopt
-from other repositories without copying this repository's source tree by hand.
+The remaining gap is publishing the first stable release tag and finishing the
+external distribution story around the CLI and `/check-inbox` template.
 
 ## Use In Another Repository
 
@@ -84,11 +84,12 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
-      - uses: ToaruPen/Yamabiko-lite@main
+      - uses: ToaruPen/Yamabiko-lite@v0.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           bot-allowlist: coderabbitai[bot],github-copilot[bot]
           inbox-branch: yamabiko-lite-inbox
+          bun-version: 1.3.10
 ```
 
 Notes:
@@ -98,6 +99,12 @@ Notes:
 - The action writes only to the inbox branch; it never mutates the PR branch.
 - The CLI remains local-first. The reusable action solves ingestion and storage,
   not autonomous fixing.
+- The first stable tag is `v0.1.0`. Pin to a commit SHA instead if you need to
+  audit or stage the rollout more conservatively.
+- Local CLI usage requires Bun 1.3.10 or newer. If `bun` is not on `PATH`, set
+  `BUN_BIN=/path/to/bun` before running package scripts.
+- A release workflow and copyable skill template now live at
+  `docs/release-process.md` and `docs/skills/check-inbox-template.md`.
 
 ## Non-Goals For V1
 
@@ -124,6 +131,8 @@ src/
 .github/workflows/
 docs/
   skills/check-inbox.md
+  skills/check-inbox-template.md
+  release-process.md
   implementation-plan.md
 ```
 
@@ -131,6 +140,6 @@ docs/
 
 The next phase is broader adoption hardening:
 
-- publish a stable tagged release for `uses: ToaruPen/Yamabiko-lite@<tag>`
-- package or distribute the `/check-inbox` skill beyond this repository
+- publish the first packaged `/check-inbox` distribution path beyond this repository
 - revisit CLI packaging after the reusable-action path is stable
+- expand adoption guidance for repositories that want a pinned-SHA rollout policy

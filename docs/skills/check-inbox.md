@@ -10,9 +10,9 @@ The executable repo-local command lives at:
 ## Preconditions
 
 - run from the repository root
-- have `gh`, `git`, and `~/.bun/bin/bun` available
+- have `gh`, `git`, and Bun available (or set `BUN_BIN=/path/to/bun`)
 - have an open PR for the current branch, or a user-provided PR number
-- have the local Yamabiko-lite CLI available in the repo
+- have the local Yamabiko-lite CLI available in the repo via `./bin/yamabiko-lite`
 
 ## Command Sequence
 
@@ -25,13 +25,13 @@ The executable repo-local command lives at:
 2. List inbox items for the PR:
 
    ```bash
-   ~/.bun/bin/bun run src/cli/main.ts inbox list --pr <PR_NUMBER> --json
+   ./bin/yamabiko-lite inbox list --pr <PR_NUMBER> --json
    ```
 
 3. Claim one item before editing:
 
    ```bash
-   ~/.bun/bin/bun run src/cli/main.ts inbox claim <ITEM_ID> --pr <PR_NUMBER>
+   ./bin/yamabiko-lite inbox claim <ITEM_ID> --pr <PR_NUMBER>
    ```
 
 4. Fix the code in the current branch and run repository-native verification.
@@ -39,7 +39,7 @@ The executable repo-local command lives at:
 5. Resolve after the fix is committed and pushed:
 
    ```bash
-   ~/.bun/bin/bun run src/cli/main.ts inbox resolve <ITEM_ID> --pr <PR_NUMBER> --status fixed
+   ./bin/yamabiko-lite inbox resolve <ITEM_ID> --pr <PR_NUMBER> --status fixed
    ```
 
 Use `--status skipped` only when the session intentionally does not fix the
