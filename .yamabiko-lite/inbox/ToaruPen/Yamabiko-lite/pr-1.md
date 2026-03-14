@@ -1,6 +1,6 @@
 # Inbox Summary: ToaruPen/Yamabiko-lite PR #1
 
-**23** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
+**32** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
@@ -27,3 +27,12 @@
 | pending | github-pull_request_review_comment-2934832562 | coderabbitai[bot] | src/reconciler/reconcile.ts:90 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934832562) |
 | pending | github-pull_request_review-3948306394 | coderabbitai[bot] |  | **Actionable comments posted: 1**  <details> <summary>♻️ Duplicate comments (3)<... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948306394) |
 | pending | github-pull_request_review_comment-2934840940 | coderabbitai[bot] | src/actions/branch.ts:11 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934840940) |
+| pending | github-pull_request_review-3948425807 | coderabbitai[bot] |  | **Actionable comments posted: 7**  <details> <summary>🧹 Nitpick comments (3)</s... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948425807) |
+| pending | github-pull_request_review_comment-2934934303 | coderabbitai[bot] | src/actions/branch.ts:119 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934934303) |
+| pending | github-pull_request_review_comment-2934934307 | coderabbitai[bot] | src/actions/branch.ts:143 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934934307) |
+| pending | github-pull_request_review_comment-2934934310 | coderabbitai[bot] | src/api/github.ts:158 | _⚠️ Potential issue_ \| _🟡 Minor_  **タイムアウト時の AbortError が再試行対象として扱われていない可能性**  ... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934934310) |
+| pending | github-pull_request_review_comment-2934934312 | coderabbitai[bot] | src/cli/commands/claim.ts:72 | _⚠️ Potential issue_ \| _🟠 Major_  **壊れた行を落とした配列で全量書き戻すので inbox を削れます。**  Line 6... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934934312) |
+| pending | github-pull_request_review_comment-2934934316 | coderabbitai[bot] | src/cli/commands/claim.ts:82 | _⚠️ Potential issue_ \| _🟠 Major_  **cleanup の失敗が本来の例外を上書きします。**  本体処理が失敗したあとに L... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934934316) |
+| pending | github-pull_request_review_comment-2934934319 | coderabbitai[bot] | src/cli/parse-repo.test.ts:63 | _⚠️ Potential issue_ \| _🟡 Minor_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934934319) |
+| pending | github-pull_request_review_comment-2934934323 | coderabbitai[bot] | src/reconciler/reconcile.ts:97 | _⚠️ Potential issue_ \| _🟡 Minor_  **AbortError (タイムアウト) が再試行対象に含まれていません**  `isT... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934934323) |
+| pending | github-issue_comment-4059995144 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> <details> <summary>✅ Acti... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4059995144) |
