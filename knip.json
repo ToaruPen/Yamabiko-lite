@@ -1,6 +1,5 @@
 {
-  "entry": ["src/index.ts", "src/cli/main.ts"],
+  "entry": ["src/index.ts"],
   "project": ["src/**/*.ts"],
-  "ignore": ["**/*.test.ts"],
-  "ignoreDependencies": ["citty", "valibot"]
+  "ignoreBinaries": ["eslint"]
 }

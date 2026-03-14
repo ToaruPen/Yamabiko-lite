@@ -46,7 +46,7 @@ const StatusSchema = union([
   literal("stale"),
 ]);
 
-export const InboxRecordSchema = object({
+const InboxRecordSchema = object({
   body: string(),
   botLogin: string(),
   commentId: number(),

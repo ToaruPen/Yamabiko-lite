@@ -15,7 +15,7 @@ import {
 } from "../normalizer/normalize.ts";
 import { upsertRecords } from "../storage/upsert.ts";
 
-export interface ReconcileOptions {
+interface ReconcileOptions {
   allowlist: readonly string[];
   existingRecords: readonly InboxRecord[];
   headSha: string;
@@ -25,7 +25,7 @@ export interface ReconcileOptions {
   token: string;
 }
 
-export interface ReconcileResult {
+interface ReconcileResult {
   added: number;
   records: InboxRecord[];
   unchanged: number;

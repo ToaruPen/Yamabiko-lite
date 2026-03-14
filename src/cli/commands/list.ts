@@ -6,7 +6,7 @@ import { readFileFromBranch } from "../../actions/branch.ts";
 import { parseInboxRecords } from "../../schema/inbox-record.ts";
 import { generateMarkdownSummary } from "../../storage/markdown.ts";
 
-export interface ListOptions {
+interface ListOptions {
   branch: string;
   includeStale: boolean;
   json: boolean;

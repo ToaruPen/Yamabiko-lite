@@ -16,14 +16,14 @@ import { assertValidTransition } from "../../schema/state.ts";
 import { writeJsonlFile } from "../../storage/jsonl.ts";
 import { generateMarkdownSummary } from "../../storage/markdown.ts";
 
-export interface ClaimOptions {
+interface ClaimOptions {
   branch: string;
   id: string;
   pr: string;
   repo: string;
 }
 
-export interface ClaimResult {
+interface ClaimResult {
   message: string;
   previousStatus: InboxStatus;
   updatedRecords: InboxRecord[];
@@ -49,7 +49,7 @@ export function applyClaimToRecords(records: InboxRecord[], id: string): ClaimRe
   };
 }
 
-export async function claimInboxItem(options: ClaimOptions): Promise<string> {
+async function claimInboxItem(options: ClaimOptions): Promise<string> {
   const { branch, id, pr, repo } = options;
   const [owner, name] = repo.split("/");
 
