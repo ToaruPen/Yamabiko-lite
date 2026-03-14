@@ -11,18 +11,18 @@ import {
 
 const originalFetch = globalThis.fetch;
 
-function mockFetch(handler: (url: string, init?: RequestInit) => Promise<Response>) {
-  globalThis.fetch = mock(handler) as typeof globalThis.fetch;
-}
-
 function jsonResponse(
   body: unknown,
   options: { headers?: Record<string, string>; status?: number } = {},
 ) {
-  return new Response(JSON.stringify(body), {
+  return Response.json(body, {
     headers: { "Content-Type": "application/json", ...options.headers },
     status: options.status ?? 200,
   });
+}
+
+function mockFetch(handler: (url: string, init?: RequestInit) => Promise<Response>) {
+  globalThis.fetch = mock(handler) as unknown as typeof globalThis.fetch;
 }
 
 const token = "ghp_test_token_123";
@@ -157,7 +157,7 @@ describe("pagination", () => {
     const page2 = [{ ...sampleReview, id: 2 }];
     let callCount = 0;
 
-    mockFetch(async (url) => {
+    mockFetch(async (_url) => {
       callCount++;
       if (callCount === 1) {
         return jsonResponse(page1, {
