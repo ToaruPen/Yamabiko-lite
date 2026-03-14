@@ -174,7 +174,8 @@ async function recoverInboxMutationLock(
 ): Promise<"held" | "retry"> {
   const existingMetadata = await readLockMetadata(lockPath);
   if (existingMetadata === undefined) {
-    return (await removeLockFileIfPresent(lockPath)) ? "retry" : "retry";
+    await removeLockFileIfPresent(lockPath);
+    return "retry";
   }
 
   if (existingMetadata.hostname !== metadata.hostname) {
