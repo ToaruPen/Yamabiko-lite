@@ -1,4 +1,4 @@
-import type { GitHubUser } from "./types";
+import type { GitHubUser } from "./types.ts";
 
 export const DEFAULT_BOT_ALLOWLIST: readonly string[] = [
   "coderabbitai[bot]",

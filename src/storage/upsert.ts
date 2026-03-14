@@ -4,13 +4,8 @@ export function upsertRecord(
   existing: readonly InboxRecord[],
   incoming: InboxRecord,
 ): InboxRecord[] {
-  const index = existing.findIndex((r) => r.id === incoming.id);
+  const current = existing.find((r) => r.id === incoming.id);
 
-  if (index === -1) {
-    return [...existing, incoming];
-  }
-
-  const current = existing[index];
   if (!current) {
     return [...existing, incoming];
   }
@@ -22,20 +17,32 @@ export function upsertRecord(
     updatedAt: incoming.updatedAt,
   };
 
-  const result = [...existing];
-  result[index] = merged;
-  return result;
+  return existing.map((r) => (r.id === incoming.id ? merged : r));
 }
 
 export function upsertRecords(
   existing: readonly InboxRecord[],
   incoming: readonly InboxRecord[],
 ): InboxRecord[] {
-  let result: InboxRecord[] = [...existing];
+  const recordMap = new Map<string, InboxRecord>();
 
-  for (const record of incoming) {
-    result = upsertRecord(result, record);
+  for (const record of existing) {
+    recordMap.set(record.id, record);
   }
 
-  return result;
+  for (const record of incoming) {
+    const current = recordMap.get(record.id);
+    if (current) {
+      recordMap.set(record.id, {
+        ...current,
+        body: record.body,
+        headSha: record.headSha,
+        updatedAt: record.updatedAt,
+      });
+    } else {
+      recordMap.set(record.id, record);
+    }
+  }
+
+  return [...recordMap.values()];
 }

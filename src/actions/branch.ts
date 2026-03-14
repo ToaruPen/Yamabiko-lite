@@ -1,3 +1,6 @@
+import { tmpdir } from "node:os";
+import path from "node:path";
+
 export async function cleanupWorktree(worktreePath: string): Promise<void> {
   const { exitCode, stderr } = await runGit(["worktree", "remove", "--force", worktreePath]);
 
@@ -66,7 +69,7 @@ export async function commitAndPushInbox(
 
 export async function ensureInboxBranch(branchName: string): Promise<string> {
   const suffix = `${String(Date.now())}-${Math.random().toString(36).slice(2, 10)}`;
-  const worktreePath = `/tmp/yamabiko-inbox-${suffix}`;
+  const worktreePath = path.join(tmpdir(), `yamabiko-inbox-${suffix}`);
 
   const { exitCode, stderr, stdout } = await runGit(["ls-remote", "--heads", "origin", branchName]);
 

@@ -15,7 +15,7 @@ import { parseInboxRecords } from "../../schema/inbox-record.ts";
 import { assertValidTransition } from "../../schema/state.ts";
 import { writeJsonlFile } from "../../storage/jsonl.ts";
 import { generateMarkdownSummary } from "../../storage/markdown.ts";
-import { parseRepo } from "../parse-repo.ts";
+import { inferRepoFromRemote, parseRepo } from "../parse-repo.ts";
 
 interface ClaimOptions {
   branch: string;
@@ -110,7 +110,7 @@ export default defineCommand({
       type: "string",
     },
     repo: {
-      description: "Repository in owner/repo format",
+      description: "Repository in owner/repo format (inferred from git remote if omitted)",
       type: "string",
     },
   },
@@ -119,10 +119,7 @@ export default defineCommand({
     name: "claim",
   },
   async run({ args }): Promise<void> {
-    const repo = args.repo;
-    if (!repo) {
-      throw new Error("--repo is required (owner/repo format)");
-    }
+    const repo = args.repo || (await inferRepoFromRemote());
 
     await claimInboxItem({
       branch: args.branch,

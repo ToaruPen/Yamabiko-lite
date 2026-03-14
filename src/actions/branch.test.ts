@@ -192,7 +192,7 @@ describe("ensureInboxBranch", () => {
 
     const result = await ensureInboxBranch("yamabiko/inbox");
 
-    expect(result).toMatch(/^\/tmp\/yamabiko-inbox-/);
+    expect(result).toMatch(/yamabiko-inbox-/);
     const orphanCall = spawnMock.mock.calls.find((callArguments: any) =>
       callArguments[0]?.includes?.("--orphan"),
     );
@@ -211,7 +211,7 @@ describe("ensureInboxBranch", () => {
 
     const result = await ensureInboxBranch("yamabiko/inbox");
 
-    expect(result).toMatch(/^\/tmp\/yamabiko-inbox-/);
+    expect(result).toMatch(/yamabiko-inbox-/);
     const fetchCall = spawnMock.mock.calls.find((callArguments: any) =>
       callArguments[0]?.includes?.("fetch"),
     );
