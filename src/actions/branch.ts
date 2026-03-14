@@ -143,6 +143,11 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
   return worktreePath;
 }
 
+export async function fetchInboxBranch(branchName: string): Promise<void> {
+  // Silently ignore failures — branch may not exist on remote yet
+  await runGit(["fetch", "origin", `${branchName}:${branchName}`]);
+}
+
 export async function readFileFromBranch(
   branchName: string,
   filePath: string,

@@ -2,7 +2,7 @@ import { defineCommand } from "citty";
 
 import type { InboxRecord } from "../../schema/inbox-record.ts";
 
-import { readFileFromBranch } from "../../actions/branch.ts";
+import { fetchInboxBranch, readFileFromBranch } from "../../actions/branch.ts";
 import { parseInboxRecords } from "../../schema/inbox-record.ts";
 import { generateMarkdownSummary } from "../../storage/markdown.ts";
 import { inferRepoFromRemote, parseRepo } from "../parse-repo.ts";
@@ -45,6 +45,7 @@ export async function readInboxFromBranch(
   const { name, owner } = parseRepo(repoPath);
   const jsonlPath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${String(prNumber)}.jsonl`;
 
+  await fetchInboxBranch(branch);
   const content = await readFileFromBranch(branch, jsonlPath);
 
   if (!content) {
