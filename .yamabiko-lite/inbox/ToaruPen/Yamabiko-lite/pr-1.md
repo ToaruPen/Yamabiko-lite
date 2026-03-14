@@ -1,10 +1,10 @@
 # Inbox Summary: ToaruPen/Yamabiko-lite PR #1
 
-**14** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
+**21** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
-| pending | github-issue_comment-4059693319 | coderabbitai[bot] |  | <!-- This is an auto-generated comment: summarize by coderabbit.ai --> <!-- This... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4059693319) |
+| pending | github-issue_comment-4059693319 | coderabbitai[bot] |  | <!-- This is an auto-generated comment: summarize by coderabbit.ai --> <!-- walk... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#issuecomment-4059693319) |
 | pending | github-pull_request_review-3948251931 | coderabbitai[bot] |  | **Actionable comments posted: 10**  <details> <summary>🧹 Nitpick comments (15)<... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948251931) |
 | pending | github-pull_request_review_comment-2934798389 | coderabbitai[bot] | .github/workflows/review-ingest.yml:13 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934798389) |
 | pending | github-pull_request_review_comment-2934798390 | coderabbitai[bot] | biome.json:24 | _⚠️ Potential issue_ \| _🟡 Minor_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934798390) |
@@ -18,3 +18,10 @@
 | pending | github-pull_request_review_comment-2934798405 | coderabbitai[bot] | src/storage/upsert.ts:23 | _⚠️ Potential issue_ \| _🟠 Major_  **upsert時に位置情報メタデータが更新されず古いまま残ります**  Line 18-... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934798405) |
 | pending | github-pull_request_review-3948253998 | coderabbitai[bot] |  |   <details> <summary>🧹 Nitpick comments (1)</summary><blockquote>  <details> <s... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948253998) |
 | pending | github-pull_request_review-3948277983 | coderabbitai[bot] |  |   <details> <summary>🧹 Nitpick comments (6)</summary><blockquote>  <details> <s... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948277983) |
+| pending | github-pull_request_review-3948293566 | coderabbitai[bot] |  | **Actionable comments posted: 6**  <details> <summary>🤖 Prompt for all review c... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948293566) |
+| pending | github-pull_request_review_comment-2934832552 | coderabbitai[bot] | src/actions/branch.ts:3 | _⚠️ Potential issue_ \| _🟠 Major_  **`cleanupWorktree` が失敗を握りつぶしています**  `runGit`... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934832552) |
+| pending | github-pull_request_review_comment-2934832553 | coderabbitai[bot] | src/actions/branch.ts:24 | _⚠️ Potential issue_ \| _🔴 Critical_  <details> <summary>🧩 Analysis chain</summ... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934832553) |
+| pending | github-pull_request_review_comment-2934832556 | coderabbitai[bot] | src/actions/branch.ts:76 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934832556) |
+| pending | github-pull_request_review_comment-2934832559 | coderabbitai[bot] | src/actions/branch.ts:81 | _⚠️ Potential issue_ \| _🟡 Minor_  **フォーマッタ不一致で CI が落ちています**  Pipeline failure の... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934832559) |
+| pending | github-pull_request_review_comment-2934832560 | coderabbitai[bot] | src/api/github.ts:71 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934832560) |
+| pending | github-pull_request_review_comment-2934832562 | coderabbitai[bot] | src/reconciler/reconcile.ts:90 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934832562) |
