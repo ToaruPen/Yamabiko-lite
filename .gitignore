@@ -3,3 +3,15 @@ node_modules/
 dist/
 coverage/
 .env
+
+# Bun
+bun.lockb
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sisyphus
+.sisyphus/evidence/

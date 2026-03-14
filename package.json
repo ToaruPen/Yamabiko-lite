@@ -1,0 +1,27 @@
+{
+  "name": "yamabiko-lite",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Lightweight inbox-driven PR remediation for AI review bots",
+  "bin": {
+    "yamabiko-lite": "./src/cli/main.ts"
+  },
+  "scripts": {
+    "lint": "echo 'Not configured yet'",
+    "lint:fix": "echo 'Not configured yet'",
+    "format": "echo 'Not configured yet'",
+    "format:check": "echo 'Not configured yet'",
+    "typecheck": "bunx tsc --noEmit",
+    "deadcode": "echo 'Not configured yet'",
+    "test": "bun test",
+    "check": "bun run typecheck && bun run lint && bun run deadcode",
+    "build": "bun build src/cli/main.ts --outdir dist --target node"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "citty": "^0.1.6",
+    "valibot": "^1.0.0"
+  }
+}
