@@ -41,12 +41,25 @@ describe("readFileFromBranch", () => {
 
   it("returns null for non-existent file", async () => {
     const spawnMock = spyOn(Bun, "spawn").mockImplementation(
-      () => createMockSubprocess("", 128) as any,
+      () =>
+        createMockSubprocess("", 128, "fatal: path 'missing.txt' does not exist in 'inbox'") as any,
     );
 
     const result = await readFileFromBranch("inbox", "missing.txt");
 
     expect(result).toBeNull();
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws for exit 128 when error is not missing file", () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("", 128, "fatal: invalid object name 'unknown-branch'.") as any,
+    );
+
+    expect(readFileFromBranch("unknown-branch", "missing.txt")).rejects.toThrow(
+      "git show failed (exit 128): fatal: invalid object name 'unknown-branch'.",
+    );
 
     spawnMock.mockRestore();
   });
@@ -161,7 +174,7 @@ describe("ensureInboxBranch", () => {
     spawnMock.mockRestore();
   });
 
-  it("throws when git ls-remote exits non-zero", async () => {
+  it("throws when git ls-remote exits non-zero", () => {
     const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
       if (commandArguments.includes("ls-remote")) {
         return createMockSubprocess("", 2, "fatal: unable to access remote") as any;
@@ -169,7 +182,7 @@ describe("ensureInboxBranch", () => {
       return createMockSubprocess("", 0) as any;
     });
 
-    await expect(ensureInboxBranch("yamabiko/inbox")).rejects.toThrow(
+    expect(ensureInboxBranch("yamabiko/inbox")).rejects.toThrow(
       'git ls-remote failed for branch "yamabiko/inbox": fatal: unable to access remote',
     );
 

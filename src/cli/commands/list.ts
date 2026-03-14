@@ -5,6 +5,7 @@ import type { InboxRecord } from "../../schema/inbox-record.ts";
 import { readFileFromBranch } from "../../actions/branch.ts";
 import { parseInboxRecords } from "../../schema/inbox-record.ts";
 import { generateMarkdownSummary } from "../../storage/markdown.ts";
+import { inferRepoFromRemote, parseRepo } from "../parse-repo.ts";
 
 interface ListOptions {
   branch: string;
@@ -120,49 +121,4 @@ async function getCurrentHeadSha(): Promise<string> {
   }
 
   return stdout.trim();
-}
-
-async function inferRepoFromRemote(): Promise<string> {
-  const subprocess = Bun.spawn(["git", "remote", "get-url", "origin"], {
-    stderr: "pipe",
-    stdout: "pipe",
-  });
-  const [stderr, stdout, exitCode] = await Promise.all([
-    new Response(subprocess.stderr).text(),
-    new Response(subprocess.stdout).text(),
-    subprocess.exited,
-  ]);
-
-  if (exitCode !== 0) {
-    throw new Error(
-      `Failed to infer repository from origin remote: ${stderr.trim() || `exit code ${String(exitCode)}`}`,
-    );
-  }
-
-  const url = stdout.trim();
-  const match = /[/:]([^/]+)\/([^/]+?)(?:\.git)?$/.exec(url);
-
-  if (!match?.[1] || !match[2]) {
-    throw new Error(`Cannot parse repository from remote URL: ${url}`);
-  }
-
-  return `${match[1]}/${match[2]}`;
-}
-
-function parseRepo(repo: string): { name: string; owner: string } {
-  const parts = repo.split("/");
-  const owner = parts[0];
-  const name = parts[1];
-
-  if (
-    parts.length !== 2 ||
-    owner === undefined ||
-    name === undefined ||
-    owner === "" ||
-    name === ""
-  ) {
-    throw new Error(`Invalid repo format: "${repo}". Expected "owner/repo".`);
-  }
-
-  return { name, owner };
 }

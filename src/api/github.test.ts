@@ -138,15 +138,13 @@ describe("fetchPullRequestHeadSha", () => {
 });
 
 describe("error handling", () => {
-  it("throws 'PR not found' on 404 response", async () => {
+  it("throws 'PR not found' on 404 response", () => {
     mockFetch(async () => jsonResponse({ message: "Not Found" }, { status: 404 }));
 
-    await expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
-      "PR not found",
-    );
+    expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow("PR not found");
   });
 
-  it("throws rate limit message on 403 when X-RateLimit-Remaining is 0", async () => {
+  it("throws rate limit message on 403 when X-RateLimit-Remaining is 0", () => {
     mockFetch(async () =>
       jsonResponse(
         { message: "API rate limit exceeded" },
@@ -154,12 +152,12 @@ describe("error handling", () => {
       ),
     );
 
-    await expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
+    expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
       "Rate limit exceeded",
     );
   });
 
-  it("throws access forbidden message on 403 when rate limit remains", async () => {
+  it("throws access forbidden message on 403 when rate limit remains", () => {
     mockFetch(async () =>
       jsonResponse(
         { message: "Resource not accessible by integration" },
@@ -167,13 +165,26 @@ describe("error handling", () => {
       ),
     );
 
-    await expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
+    expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
       "Access forbidden: Resource not accessible by integration",
     );
   });
 });
 
 describe("pagination", () => {
+  it("adds per_page=100 to initial paginated request", async () => {
+    const requestedUrls: string[] = [];
+    mockFetch(async (url) => {
+      requestedUrls.push(url);
+      return jsonResponse([]);
+    });
+
+    await fetchPullRequestReviews(owner, repo, prNumber, token);
+
+    expect(requestedUrls).toHaveLength(1);
+    expect(requestedUrls[0]).toContain("per_page=100");
+  });
+
   it("follows Link header to fetch all pages", async () => {
     const page1 = [{ ...sampleReview, id: 1 }];
     const page2 = [{ ...sampleReview, id: 2 }];

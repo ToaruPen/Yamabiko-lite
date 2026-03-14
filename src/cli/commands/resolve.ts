@@ -14,6 +14,7 @@ import { parseInboxRecords } from "../../schema/inbox-record.ts";
 import { assertValidTransition } from "../../schema/state.ts";
 import { writeJsonlFile } from "../../storage/jsonl.ts";
 import { generateMarkdownSummary } from "../../storage/markdown.ts";
+import { inferRepoFromRemote, parseRepo } from "../parse-repo.ts";
 
 const VALID_RESOLVE_STATUSES: ReadonlySet<string> = new Set(["fixed", "skipped"]);
 
@@ -87,10 +88,6 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
   }
 }
 
-function detectRepo(): string {
-  throw new Error("Could not detect repository. Pass --repo owner/repo explicitly.");
-}
-
 function parsePrNumber(pr: string): number {
   const prNumber = Number(pr);
   if (!Number.isInteger(prNumber) || prNumber <= 0) {
@@ -98,14 +95,6 @@ function parsePrNumber(pr: string): number {
   }
 
   return prNumber;
-}
-
-function parseRepo(repo: string): { name: string; owner: string } {
-  const parts = repo.split("/");
-  if (parts.length !== 2 || !parts[0] || !parts[1]) {
-    throw new Error(`Invalid repo format: "${repo}". Expected "owner/repo".`);
-  }
-  return { name: parts[1], owner: parts[0] };
 }
 
 export default defineCommand({
@@ -126,7 +115,7 @@ export default defineCommand({
       type: "string",
     },
     repo: {
-      description: "Repository in owner/repo format",
+      description: "Repository in owner/repo format (inferred from git remote if omitted)",
       type: "string",
     },
     status: {
@@ -139,8 +128,8 @@ export default defineCommand({
     description: "Resolve an inbox item",
     name: "resolve",
   },
-  async run({ args: commandArguments }) {
-    const repo = commandArguments.repo || detectRepo();
+  async run({ args: commandArguments }): Promise<void> {
+    const repo = commandArguments.repo || (await inferRepoFromRemote());
     const message = await runResolve({
       branch: commandArguments.branch,
       id: commandArguments.id,

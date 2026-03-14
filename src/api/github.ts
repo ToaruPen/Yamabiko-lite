@@ -88,6 +88,14 @@ export async function fetchPullRequestReviews(
   return fetchAllPages<GitHubReview>(url, token);
 }
 
+function addPerPage(url: string): string {
+  const urlObject = new URL(url);
+  if (!urlObject.searchParams.has("per_page")) {
+    urlObject.searchParams.set("per_page", "100");
+  }
+  return urlObject.toString();
+}
+
 function buildHeaders(token: string): Record<string, string> {
   return {
     Accept: "application/vnd.github+json",
@@ -113,7 +121,7 @@ async function extractErrorMessage(response: Response): Promise<string | undefin
 
 async function fetchAllPages<T>(url: string, token: string): Promise<T[]> {
   const results: T[] = [];
-  let nextUrl: string | undefined = url;
+  let nextUrl: string | undefined = addPerPage(url);
 
   while (nextUrl) {
     const response: Response = await fetch(nextUrl, {

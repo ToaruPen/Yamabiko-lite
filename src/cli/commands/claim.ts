@@ -15,6 +15,7 @@ import { parseInboxRecords } from "../../schema/inbox-record.ts";
 import { assertValidTransition } from "../../schema/state.ts";
 import { writeJsonlFile } from "../../storage/jsonl.ts";
 import { generateMarkdownSummary } from "../../storage/markdown.ts";
+import { parseRepo } from "../parse-repo.ts";
 
 interface ClaimOptions {
   branch: string;
@@ -89,28 +90,6 @@ function parsePrNumber(pr: string): number {
   }
 
   return prNumber;
-}
-
-function parseRepo(repo: string): { name: string; owner: string } {
-  const parts = repo.split("/");
-  const owner = parts[0];
-  const name = parts[1];
-
-  if (
-    parts.length !== 2 ||
-    owner === undefined ||
-    name === undefined ||
-    owner === "" ||
-    name === ""
-  ) {
-    throw new Error(`Invalid repo format: "${repo}". Expected "owner/repo".`);
-  }
-
-  if (owner.includes("..") || name.includes("..") || owner.includes("\\") || name.includes("\\")) {
-    throw new Error(`Invalid repo path components: "${repo}".`);
-  }
-
-  return { name, owner };
 }
 
 export default defineCommand({

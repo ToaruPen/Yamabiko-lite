@@ -76,8 +76,12 @@ export async function readFileFromBranch(
   });
 
   if (exitCode === 128) {
-    // eslint-disable-next-line unicorn/no-null -- API contract: null signals missing file
-    return null;
+    if (stderr.includes("does not exist") || stderr.includes("exists on disk, but not in")) {
+      // eslint-disable-next-line unicorn/no-null -- API contract: null signals missing file
+      return null;
+    }
+
+    throw new Error(`git show failed (exit 128): ${stderr}`);
   }
 
   if (exitCode !== 0) {
