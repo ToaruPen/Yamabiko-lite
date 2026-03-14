@@ -13,6 +13,7 @@ import {
   normalizeReviewCommentEvent,
   normalizeReviewEvent,
 } from "../normalizer/normalize.ts";
+import { generateRecordId } from "../schema/id.ts";
 import { upsertRecords } from "../storage/upsert.ts";
 
 interface ReconcileOptions {
@@ -94,10 +95,13 @@ function normalizeIssueComments(
   options: ReconcileOptions,
 ): InboxRecord[] {
   const normalized: InboxRecord[] = [];
+  const existingById = new Map(options.existingRecords.map((r) => [r.id, r]));
   const prUrl = `https://github.com/${options.owner}/${options.repo}/pull/${options.prNumber.toString()}`;
   for (const comment of items) {
     const user = toGitHubUser(comment.user);
     if (!isAllowedBot(user, options.allowlist)) continue;
+    const recordId = generateRecordId("github", "issue_comment", comment.id);
+    const headSha = existingById.get(recordId)?.headSha ?? options.headSha;
     const record = normalizeIssueCommentEvent(
       {
         action: "created",
@@ -109,7 +113,7 @@ function normalizeIssueComments(
         },
         repository: { name: options.repo, owner: { login: options.owner } },
       },
-      options.headSha,
+      headSha,
     );
     if (record !== null) normalized.push(record);
   }

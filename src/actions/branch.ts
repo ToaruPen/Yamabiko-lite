@@ -18,9 +18,14 @@ export async function commitAndPushInbox(
   }
 
   const fullMessage = `${message} [skip ci]`;
-  await runGit(["commit", "-m", fullMessage], {
-    workingDirectory: worktreePath,
-  });
+  const { exitCode: commitExitCode, stderr: commitStderr } = await runGit(
+    ["commit", "-m", fullMessage],
+    { workingDirectory: worktreePath },
+  );
+
+  if (commitExitCode !== 0) {
+    throw new Error(`git commit failed (exit ${String(commitExitCode)}): ${commitStderr}`);
+  }
 
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -76,9 +81,7 @@ export async function readFileFromBranch(
   }
 
   if (exitCode !== 0) {
-    throw new Error(
-      `git show failed (exit ${String(exitCode)}): ${stdout || stderr}`,
-    );
+    throw new Error(`git show failed (exit ${String(exitCode)}): ${stdout || stderr}`);
   }
 
   return stdout;
