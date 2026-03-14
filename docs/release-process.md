@@ -22,9 +22,9 @@ verification suite passes.
 
    ```bash
    ./bin/yamabiko-lite --help
-   bun run check
-   bun test
-   bun run build
+   sh ./scripts/bun-exec.sh run check
+   sh ./scripts/bun-exec.sh test
+   sh ./scripts/bun-exec.sh run build
    ```
 
 3. Create and push a stable tag.
@@ -39,6 +39,9 @@ verification suite passes.
    The workflow at `.github/workflows/release.yml` runs `check`, `test`,
    `build`, packages the release archive, and publishes a GitHub release for the
    pushed tag.
+
+   The local verification commands above use `scripts/bun-exec.sh`, which honors
+   `BUN_BIN` when set and otherwise falls back to `bun` on `PATH`.
 
 5. Confirm the adoption example references the published tag.
 

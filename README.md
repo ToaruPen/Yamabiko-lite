@@ -101,7 +101,7 @@ Notes:
   not autonomous fixing.
 - The first stable tag is `v0.1.0`. Pin to a commit SHA instead if you need to
   audit or stage the rollout more conservatively.
-- Local CLI usage requires Bun 1.3.10 or newer. If `bun` is not on `PATH`, set
+- Local CLI usage is pinned to Bun 1.3.10 for reproducibility. If `bun` is not on `PATH`, set
   `BUN_BIN=/path/to/bun` before running package scripts.
 - A release workflow and copyable skill template now live at
   `docs/release-process.md` and `docs/skills/check-inbox-template.md`.

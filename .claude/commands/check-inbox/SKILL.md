@@ -84,10 +84,10 @@ Escalate those cases to the human instead of resolving the inbox item.
    order:
 
    ```bash
-    ${BUN_BIN:-$HOME/.bun/bin/bun} run format:check
-    ${BUN_BIN:-$HOME/.bun/bin/bun} run lint
-    ${BUN_BIN:-$HOME/.bun/bin/bun} x tsc --noEmit
-    ${BUN_BIN:-$HOME/.bun/bin/bun} test
+    sh ./scripts/bun-exec.sh run format:check
+    sh ./scripts/bun-exec.sh run lint
+    sh ./scripts/bun-exec.sh x tsc --noEmit
+    sh ./scripts/bun-exec.sh test
    ```
 
    If the repository uses a different test stack, run the repo-native checks.
