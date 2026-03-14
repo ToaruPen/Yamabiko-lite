@@ -1,0 +1,30 @@
+{
+  "action": "submitted",
+  "pull_request": {
+    "head": {
+      "ref": "feature/inbox-normalizer",
+      "sha": "2222222222222222222222222222222222222222"
+    },
+    "number": 42,
+    "state": "open"
+  },
+  "repository": {
+    "name": "yamabiko-lite",
+    "owner": {
+      "login": "sankenbisha"
+    }
+  },
+  "review": {
+    "body": "Please simplify this branch and avoid duplicate parsing.",
+    "commit_id": "1111111111111111111111111111111111111111",
+    "html_url": "https://github.com/sankenbisha/yamabiko-lite/pull/42#pullrequestreview-710001",
+    "id": 710001,
+    "state": "changes_requested",
+    "submitted_at": "2026-03-14T00:00:00Z",
+    "user": {
+      "id": 1001,
+      "login": "coderabbitai[bot]",
+      "type": "Bot"
+    }
+  }
+}

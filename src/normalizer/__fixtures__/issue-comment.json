@@ -1,0 +1,27 @@
+{
+  "action": "created",
+  "comment": {
+    "body": "General PR note: simplify this conditional and add coverage.",
+    "html_url": "https://github.com/sankenbisha/yamabiko-lite/pull/42#issuecomment-830003",
+    "id": 830003,
+    "user": {
+      "id": 1001,
+      "login": "coderabbitai[bot]",
+      "type": "Bot"
+    }
+  },
+  "issue": {
+    "number": 42,
+    "pull_request": {
+      "html_url": "https://github.com/sankenbisha/yamabiko-lite/pull/42",
+      "url": "https://api.github.com/repos/sankenbisha/yamabiko-lite/pulls/42"
+    },
+    "state": "open"
+  },
+  "repository": {
+    "name": "yamabiko-lite",
+    "owner": {
+      "login": "sankenbisha"
+    }
+  }
+}
