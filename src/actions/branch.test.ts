@@ -114,6 +114,21 @@ describe("resolveInboxPathsInBranch", () => {
 
     spawnMock.mockRestore();
   });
+
+  it("falls back to canonical paths when ls-tree reports missing refs with capitalized stderr", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("", 128, "fatal: Not a valid object name inbox") as any,
+    );
+
+    const result = await resolveInboxPathsInBranch("inbox", "owner", "repo", 42);
+
+    expect(result).toEqual({
+      jsonlPath: ".yamabiko-lite/inbox/owner/repo/pr-42.jsonl",
+      mdPath: ".yamabiko-lite/inbox/owner/repo/pr-42.md",
+    });
+
+    spawnMock.mockRestore();
+  });
 });
 
 describe("commitAndPushInbox", () => {

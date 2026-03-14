@@ -214,7 +214,7 @@ async function findExistingInboxJsonlPath(
     { trimStdout: false },
   );
 
-  if (exitCode === 128 && stderr.includes("not a valid object name")) {
+  if (exitCode === 128 && stderr.toLowerCase().includes("not a valid object name")) {
     return undefined;
   }
 
