@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, readdir, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -102,20 +102,22 @@ describe("withInboxMutationLock", () => {
         },
         {
           getGitCommonDirectory: async () => rootDirectory,
+          getHostname: () => "test-host",
+          getPid: () => 123,
         },
       ),
     ).rejects.toBe(operationError);
   });
 
-  it("recovers stale lock files before rejecting a new mutation", async () => {
-    const now = new Date("2026-03-14T14:00:00.000Z");
-    const staleTime = new Date(now.getTime() - 10 * 60 * 1000);
+  it("recovers stale lock files when the owning process is gone", async () => {
     const lockDirectory = path.join(rootDirectory, "yamabiko-lite", "locks");
     const staleLockPath = path.join(lockDirectory, "yamabiko-lite-inbox--owner--repo--pr-1.lock");
 
     await mkdir(lockDirectory, { recursive: true });
-    await writeFile(staleLockPath, "stale-lock");
-    await utimes(staleLockPath, staleTime, staleTime);
+    await writeFile(
+      staleLockPath,
+      JSON.stringify({ hostname: "test-host", pid: 111, token: "stale-token" }),
+    );
 
     const result = await withInboxMutationLock(
       {
@@ -127,7 +129,9 @@ describe("withInboxMutationLock", () => {
       async () => "recovered",
       {
         getGitCommonDirectory: async () => rootDirectory,
-        now: () => now.getTime(),
+        getHostname: () => "test-host",
+        getPid: () => 123,
+        isProcessAlive: (pid) => pid === 123,
       },
     );
 
@@ -135,15 +139,15 @@ describe("withInboxMutationLock", () => {
     expect(await readdir(lockDirectory)).toEqual([]);
   });
 
-  it("keeps rejecting fresh lock files", async () => {
-    const now = new Date("2026-03-14T14:00:00.000Z");
-    const freshTime = new Date(now.getTime() - 10 * 1000);
+  it("keeps rejecting active lock files", async () => {
     const lockDirectory = path.join(rootDirectory, "yamabiko-lite", "locks");
     const freshLockPath = path.join(lockDirectory, "yamabiko-lite-inbox--owner--repo--pr-1.lock");
 
     await mkdir(lockDirectory, { recursive: true });
-    await writeFile(freshLockPath, "fresh-lock");
-    await utimes(freshLockPath, freshTime, freshTime);
+    await writeFile(
+      freshLockPath,
+      JSON.stringify({ hostname: "test-host", pid: 222, token: "fresh-token" }),
+    );
 
     await expect(
       withInboxMutationLock(
@@ -156,7 +160,9 @@ describe("withInboxMutationLock", () => {
         async () => "recovered",
         {
           getGitCommonDirectory: async () => rootDirectory,
-          now: () => now.getTime(),
+          getHostname: () => "test-host",
+          getPid: () => 123,
+          isProcessAlive: (pid) => pid === 222,
         },
       ),
     ).rejects.toThrow(
@@ -165,5 +171,106 @@ describe("withInboxMutationLock", () => {
 
     const lockStats = await stat(freshLockPath);
     expect(lockStats.isFile()).toBe(true);
+  });
+
+  it("does not remove a lock held by another host", async () => {
+    const lockDirectory = path.join(rootDirectory, "yamabiko-lite", "locks");
+    const lockPath = path.join(lockDirectory, "yamabiko-lite-inbox--owner--repo--pr-1.lock");
+
+    await mkdir(lockDirectory, { recursive: true });
+    await writeFile(
+      lockPath,
+      JSON.stringify({ hostname: "remote-host", pid: 999, token: "remote" }),
+    );
+
+    await expect(
+      withInboxMutationLock(
+        {
+          branch: "yamabiko-lite-inbox",
+          owner: "owner",
+          prNumber: 1,
+          repo: "repo",
+        },
+        async () => "recovered",
+        {
+          getGitCommonDirectory: async () => rootDirectory,
+          getHostname: () => "test-host",
+          getPid: () => 123,
+          isProcessAlive: () => false,
+        },
+      ),
+    ).rejects.toThrow(
+      "Inbox mutation lock already held for owner/repo PR #1 on branch yamabiko-lite-inbox.",
+    );
+  });
+
+  it("does not delete a newer lock file during cleanup", async () => {
+    const lockDirectory = path.join(rootDirectory, "yamabiko-lite", "locks");
+    const lockPath = path.join(lockDirectory, "yamabiko-lite-inbox--owner--repo--pr-1.lock");
+
+    await mkdir(lockDirectory, { recursive: true });
+
+    await withInboxMutationLock(
+      {
+        branch: "yamabiko-lite-inbox",
+        owner: "owner",
+        prNumber: 1,
+        repo: "repo",
+      },
+      async () => {
+        await writeFile(
+          lockPath,
+          JSON.stringify({ hostname: "test-host", pid: 555, token: "replacement-token" }),
+        );
+        return "ok";
+      },
+      {
+        getGitCommonDirectory: async () => rootDirectory,
+        getHostname: () => "test-host",
+        getPid: () => 123,
+      },
+    );
+
+    const currentMetadata = JSON.parse(await Bun.file(lockPath).text()) as {
+      token: string;
+    };
+    expect(currentMetadata.token).toBe("replacement-token");
+  });
+
+  it("preserves the original operation error when lock cleanup fails", async () => {
+    const warnings: string[] = [];
+    const operationError = new Error("mutation failed");
+
+    await expect(
+      withInboxMutationLock(
+        {
+          branch: "yamabiko-lite-inbox",
+          owner: "owner",
+          prNumber: 1,
+          repo: "repo",
+        },
+        async () => {
+          const lockPath = path.join(
+            rootDirectory,
+            "yamabiko-lite",
+            "locks",
+            "yamabiko-lite-inbox--owner--repo--pr-1.lock",
+          );
+          await writeFile(
+            lockPath,
+            JSON.stringify({ hostname: "test-host", pid: 999, token: "replacement-token" }),
+          );
+          throw operationError;
+        },
+        {
+          getGitCommonDirectory: async () => rootDirectory,
+          getHostname: () => "test-host",
+          getPid: () => 123,
+          logWarning: (message) => warnings.push(message),
+        },
+      ),
+    ).rejects.toBe(operationError);
+
+    expect(warnings).toHaveLength(0);
   });
 });

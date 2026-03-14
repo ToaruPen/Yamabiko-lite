@@ -33,6 +33,11 @@ export interface IngestOptions {
   token: string;
 }
 
+interface CanonicalRepoIdentity {
+  owner: string;
+  repo: string;
+}
+
 interface IngestContext {
   owner: string;
   prNumber: number;
@@ -77,6 +82,13 @@ function asObject(value: unknown): Record<string, unknown> {
   throw new TypeError("Invalid event payload: object expected");
 }
 
+function canonicalizeRepoIdentity(owner: string, repo: string): CanonicalRepoIdentity {
+  return {
+    owner: owner.toLowerCase(),
+    repo: repo.toLowerCase(),
+  };
+}
+
 function emptyResult(): IngestResult {
   return { added: 0, totalRecords: 0, unchanged: 0, updated: 0 };
 }
@@ -101,10 +113,16 @@ function extractContext(eventType: string, eventPayload: unknown): IngestContext
     throw new TypeError("Invalid event payload: repository owner/name missing");
   }
 
+  const canonicalRepoIdentity = canonicalizeRepoIdentity(owner, repo);
+
   if (eventType === "issue_comment") {
     const issue = asObject(payload["issue"]);
     if (issue["pull_request"] === undefined) return undefined;
-    return { owner, prNumber: toPullRequestNumber(issue["number"]), repo };
+    return {
+      owner: canonicalRepoIdentity.owner,
+      prNumber: toPullRequestNumber(issue["number"]),
+      repo: canonicalRepoIdentity.repo,
+    };
   }
 
   if (eventType === "pull_request_review" || eventType === "pull_request_review_comment") {
@@ -115,9 +133,9 @@ function extractContext(eventType: string, eventPayload: unknown): IngestContext
       throw new TypeError("Invalid event payload: pull_request.head.sha missing");
     }
     return {
-      owner,
+      owner: canonicalRepoIdentity.owner,
       prNumber: toPullRequestNumber(pullRequest["number"]),
-      repo,
+      repo: canonicalRepoIdentity.repo,
       reviewHeadSha: headSha,
     };
   }

@@ -228,6 +228,34 @@ describe("ingest", () => {
     );
   });
 
+  it("normalizes mixed-case repository names before reading and writing inbox paths", async () => {
+    const result = await ingest(
+      makeOptions({
+        eventPayload: {
+          pull_request: { head: { ref: "feature", sha: "head-sha" }, number: 42 },
+          repository: { name: "Repo", owner: { login: "Octo" } },
+        },
+      }),
+      testDeps,
+    );
+
+    expect(result.totalRecords).toBe(1);
+    expect(mockReadFileFromBranch).toHaveBeenCalledWith(
+      "yamabiko-lite-inbox",
+      ".yamabiko-lite/inbox/octo/repo/pr-42.jsonl",
+    );
+    expect(mockWriteJsonlFile).toHaveBeenCalledWith(
+      path.join("/tmp/worktree", ".yamabiko-lite/inbox/octo/repo/pr-42.jsonl"),
+      expect.any(Array),
+    );
+    expect(mockReconcilePullRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: "octo",
+        repo: "repo",
+      }),
+    );
+  });
+
   it("always cleans up worktree when reconciliation throws", async () => {
     mockReconcilePullRequest.mockRejectedValue(new Error("reconcile failed"));
 
