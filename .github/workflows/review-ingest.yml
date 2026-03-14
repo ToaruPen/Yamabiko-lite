@@ -1,0 +1,35 @@
+name: Review Event Ingestion
+on:
+  pull_request_review:
+    types: [submitted, dismissed]
+  pull_request_review_comment:
+    types: [created, edited]
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    if: github.event.sender.type == 'Bot' && (github.event_name != 'issue_comment' || github.event.issue.pull_request != null)
+    permissions:
+      contents: write
+      pull-requests: read
+    concurrency:
+      group: inbox-write-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Setup git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Run ingestion
+        run: bun run src/actions/ingest.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOT_ALLOWLIST: "coderabbitai[bot],github-copilot[bot]"
