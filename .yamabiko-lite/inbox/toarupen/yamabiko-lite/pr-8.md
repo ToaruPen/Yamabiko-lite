@@ -1,6 +1,6 @@
 # Inbox Summary: toarupen/yamabiko-lite PR #8
 
-**21** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
+**23** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
@@ -25,3 +25,5 @@
 | pending | github-pull_request_review-3948951245 | coderabbitai[bot] |  |   <details> <summary>🧹 Nitpick comments (1)</summary><blockquote>  <details> <s... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/8#pullrequestreview-3948951245) |
 | pending | github-issue_comment-4060707000 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> `@ToaruPen` Thanks for th... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/8#issuecomment-4060707000) |
 | pending | github-issue_comment-4060709862 | coderabbitai[bot] |  | <!-- This is an auto-generated reply by CodeRabbit --> `@ToaruPen` Thanks for th... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/8#issuecomment-4060709862) |
+| pending | github-pull_request_review-3948954504 | coderabbitai[bot] |  | **Actionable comments posted: 1**  <details> <summary>🤖 Prompt for all review c... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/8#pullrequestreview-3948954504) |
+| pending | github-pull_request_review_comment-2935407423 | coderabbitai[bot] | src/actions/branch.ts:153 | _⚠️ Potential issue_ \| _🟠 Major_  **公開API内で canonical owner/repo を強制したほうが安全です。*... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/8#discussion_r2935407423) |
