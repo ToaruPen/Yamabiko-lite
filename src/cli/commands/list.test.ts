@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 
 import type { InboxRecord } from "../../schema/inbox-record.ts";
 
@@ -46,6 +46,13 @@ function makeRecord(overrides: Partial<InboxRecord> = {}): InboxRecord {
 // Mock branch module to prevent cross-test contamination from claim.test.ts
 // eslint-disable-next-line unicorn/no-null -- readFileFromBranch API contract returns null
 const mockReadFileFromBranch = mock(() => Promise.resolve(null as null | string));
+const mockResolveInboxPathsInBranch = mock(
+  (_branch: string, owner: string, repo: string, prNumber: number) =>
+    Promise.resolve({
+      jsonlPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.jsonl`,
+      mdPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.md`,
+    }),
+);
 
 mock.module("../../actions/branch.ts", () => ({
   cleanupWorktree: mock(() => Promise.resolve()),
@@ -53,13 +60,25 @@ mock.module("../../actions/branch.ts", () => ({
   ensureInboxBranch: mock(() => Promise.resolve("/tmp/fake")),
   fetchInboxBranch: mock(() => Promise.resolve()),
   readFileFromBranch: mockReadFileFromBranch,
+  resolveInboxPathsInBranch: mockResolveInboxPathsInBranch,
 }));
 
 import { listInboxItems, readInboxFromBranch } from "./list.ts";
 
+beforeEach(() => {
+  mockResolveInboxPathsInBranch.mockImplementation(
+    (_branch: string, owner: string, repo: string, prNumber: number) =>
+      Promise.resolve({
+        jsonlPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.jsonl`,
+        mdPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.md`,
+      }),
+  );
+});
+
 describe("readInboxFromBranch", () => {
   afterEach(() => {
     mockReadFileFromBranch.mockReset();
+    mockResolveInboxPathsInBranch.mockReset();
   });
 
   it("reads and parses records from the inbox branch", async () => {
@@ -77,7 +96,35 @@ describe("readInboxFromBranch", () => {
 
     expect(mockReadFileFromBranch).toHaveBeenCalledWith(
       "yamabiko-lite-inbox",
-      ".yamabiko-lite/inbox/OWNER/REPO/pr-42.jsonl",
+      ".yamabiko-lite/inbox/owner/repo/pr-42.jsonl",
+    );
+  });
+
+  it("reuses an existing legacy mixed-case inbox path", async () => {
+    const records = [makeRecord({ commentId: 1, id: "rec-1" })];
+    mockResolveInboxPathsInBranch.mockResolvedValue({
+      jsonlPath: ".yamabiko-lite/inbox/Owner/Repo/pr-42.jsonl",
+      mdPath: ".yamabiko-lite/inbox/Owner/Repo/pr-42.md",
+    });
+    mockReadFileFromBranch.mockImplementation(() => Promise.resolve(buildJsonl(records).trim()));
+
+    await readInboxFromBranch("yamabiko-lite-inbox", "owner/repo", 42);
+
+    expect(mockReadFileFromBranch).toHaveBeenCalledWith(
+      "yamabiko-lite-inbox",
+      ".yamabiko-lite/inbox/Owner/Repo/pr-42.jsonl",
+    );
+  });
+
+  it("normalizes mixed-case repo input before building the inbox path", async () => {
+    const records = [makeRecord({ commentId: 1, id: "rec-1" })];
+    mockReadFileFromBranch.mockImplementation(() => Promise.resolve(buildJsonl(records).trim()));
+
+    await readInboxFromBranch("yamabiko-lite-inbox", "Owner/Repo", 42);
+
+    expect(mockReadFileFromBranch).toHaveBeenCalledWith(
+      "yamabiko-lite-inbox",
+      ".yamabiko-lite/inbox/owner/repo/pr-42.jsonl",
     );
   });
 

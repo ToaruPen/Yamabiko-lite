@@ -22,7 +22,8 @@ export async function inferRepoFromRemote(): Promise<string> {
     throw new Error(`Cannot parse repository from remote URL: ${url}`);
   }
 
-  return `${match[1]}/${match[2]}`;
+  const { name, owner } = parseRepo(`${match[1]}/${match[2]}`);
+  return `${owner}/${name}`;
 }
 
 export function parseRepo(repo: string): { name: string; owner: string } {
@@ -44,5 +45,5 @@ export function parseRepo(repo: string): { name: string; owner: string } {
     throw new Error(`Invalid repo path components: "${repo}".`);
   }
 
-  return { name, owner };
+  return { name: name.toLowerCase(), owner: owner.toLowerCase() };
 }

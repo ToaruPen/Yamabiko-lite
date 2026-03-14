@@ -28,6 +28,13 @@ const mockReconcilePullRequest =
   >();
 const mockWriteJsonlFile =
   mock<(filePath: string, records: readonly InboxRecord[]) => Promise<void>>();
+const mockResolveInboxPathsInBranch = mock(
+  (_branchName: string, owner: string, repo: string, prNumber: number) =>
+    Promise.resolve({
+      jsonlPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.jsonl`,
+      mdPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.md`,
+    }),
+);
 const mockGenerateMarkdownSummary =
   mock<
     (
@@ -45,6 +52,7 @@ const testDeps: IngestDeps = {
   generateMarkdownSummary: (...arguments_) => mockGenerateMarkdownSummary(...arguments_),
   readFileFromBranch: (...arguments_) => mockReadFileFromBranch(...arguments_),
   reconcilePullRequest: (...arguments_) => mockReconcilePullRequest(...arguments_),
+  resolveInboxPathsInBranch: (...arguments_) => mockResolveInboxPathsInBranch(...arguments_),
   writeJsonlFile: (...arguments_) => mockWriteJsonlFile(...arguments_),
 };
 
@@ -91,6 +99,7 @@ beforeEach(() => {
   mockFetchPullRequestHeadSha.mockReset();
   mockReconcilePullRequest.mockReset();
   mockWriteJsonlFile.mockReset();
+  mockResolveInboxPathsInBranch.mockReset();
   mockGenerateMarkdownSummary.mockReset();
 
   mockEnsureInboxBranch.mockResolvedValue("/tmp/worktree");
@@ -103,6 +112,13 @@ beforeEach(() => {
     updated: 0,
   });
   mockWriteJsonlFile.mockResolvedValue();
+  mockResolveInboxPathsInBranch.mockImplementation(
+    (_branchName: string, owner: string, repo: string, prNumber: number) =>
+      Promise.resolve({
+        jsonlPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.jsonl`,
+        mdPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.md`,
+      }),
+  );
   mockGenerateMarkdownSummary.mockReturnValue("# summary\n");
   mockCommitAndPushInbox.mockResolvedValue(true);
   mockCleanupWorktree.mockResolvedValue();
@@ -225,6 +241,52 @@ describe("ingest", () => {
     expect(mockWriteJsonlFile).toHaveBeenCalledWith(
       path.join("/tmp/worktree", ".yamabiko-lite/inbox/octo/repo/pr-42.jsonl"),
       [upserted],
+    );
+  });
+
+  it("normalizes mixed-case repository names before reading and writing inbox paths", async () => {
+    const result = await ingest(
+      makeOptions({
+        eventPayload: {
+          pull_request: { head: { ref: "feature", sha: "head-sha" }, number: 42 },
+          repository: { name: "Repo", owner: { login: "Octo" } },
+        },
+      }),
+      testDeps,
+    );
+
+    expect(result.totalRecords).toBe(1);
+    expect(mockReadFileFromBranch).toHaveBeenCalledWith(
+      "yamabiko-lite-inbox",
+      ".yamabiko-lite/inbox/octo/repo/pr-42.jsonl",
+    );
+    expect(mockWriteJsonlFile).toHaveBeenCalledWith(
+      path.join("/tmp/worktree", ".yamabiko-lite/inbox/octo/repo/pr-42.jsonl"),
+      expect.any(Array),
+    );
+    expect(mockReconcilePullRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        owner: "octo",
+        repo: "repo",
+      }),
+    );
+  });
+
+  it("reuses a legacy mixed-case inbox path when one already exists", async () => {
+    mockResolveInboxPathsInBranch.mockResolvedValue({
+      jsonlPath: ".yamabiko-lite/inbox/Octo/Repo/pr-42.jsonl",
+      mdPath: ".yamabiko-lite/inbox/Octo/Repo/pr-42.md",
+    });
+
+    await ingest(makeOptions(), testDeps);
+
+    expect(mockReadFileFromBranch).toHaveBeenCalledWith(
+      "yamabiko-lite-inbox",
+      ".yamabiko-lite/inbox/Octo/Repo/pr-42.jsonl",
+    );
+    expect(mockWriteJsonlFile).toHaveBeenCalledWith(
+      path.join("/tmp/worktree", ".yamabiko-lite/inbox/Octo/Repo/pr-42.jsonl"),
+      expect.any(Array),
     );
   });
 

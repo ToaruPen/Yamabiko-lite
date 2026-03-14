@@ -77,6 +77,13 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
   const suffix = `${String(Date.now())}-${Math.random().toString(36).slice(2, 10)}`;
   const worktreePath = path.join(tmpdir(), `yamabiko-inbox-${suffix}`);
 
+  try {
+    await pruneStaleWorktrees();
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Warning: inbox worktree prune failed: ${message}`);
+  }
+
   const remoteExists = await remoteBranchExists(branchName);
 
   if (remoteExists) {
@@ -136,6 +143,24 @@ export async function readFileFromBranch(
   return stdout;
 }
 
+export async function resolveInboxPathsInBranch(
+  branchName: string,
+  owner: string,
+  repo: string,
+  prNumber: number,
+): Promise<{ jsonlPath: string; mdPath: string }> {
+  const canonicalBasePath = `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}`;
+  const matchingJsonlPath = await findExistingInboxJsonlPath(branchName, owner, repo, prNumber);
+  const basePath = matchingJsonlPath
+    ? matchingJsonlPath.slice(0, -".jsonl".length)
+    : canonicalBasePath;
+
+  return {
+    jsonlPath: `${basePath}.jsonl`,
+    mdPath: `${basePath}.md`,
+  };
+}
+
 async function addOrphanWorktree(worktreePath: string, branchName: string): Promise<void> {
   const { exitCode, stderr } = await runGit([
     "worktree",
@@ -177,6 +202,47 @@ async function fetchBranch(branchName: string): Promise<void> {
   }
 }
 
+async function findExistingInboxJsonlPath(
+  branchName: string,
+  owner: string,
+  repo: string,
+  prNumber: number,
+): Promise<string | undefined> {
+  const expectedSuffix = `/pr-${String(prNumber)}.jsonl`;
+  const { exitCode, stderr, stdout } = await runGit(
+    ["ls-tree", "-r", "--name-only", branchName, ".yamabiko-lite/inbox"],
+    { trimStdout: false },
+  );
+
+  if (exitCode === 128 && stderr.toLowerCase().includes("not a valid object name")) {
+    return undefined;
+  }
+
+  if (exitCode !== 0) {
+    throw new Error(`git ls-tree failed (exit ${String(exitCode)}): ${stderr || stdout}`);
+  }
+
+  const candidatePaths = stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith(".yamabiko-lite/inbox/") && line.endsWith(expectedSuffix));
+
+  const exactMatch = candidatePaths.find(
+    (line) => line === `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.jsonl`,
+  );
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  const lowerOwner = owner.toLowerCase();
+  const lowerRepo = repo.toLowerCase();
+
+  return candidatePaths.find((line) => {
+    const parts = line.split("/");
+    return parts[2]?.toLowerCase() === lowerOwner && parts[3]?.toLowerCase() === lowerRepo;
+  });
+}
+
 function isMissingRemoteBranchError(exitCode: number, stderr: string): boolean {
   if (exitCode !== 1 && exitCode !== 128) {
     return false;
@@ -192,6 +258,14 @@ function isMissingRemoteBranchError(exitCode: number, stderr: string): boolean {
 async function localBranchExists(branchName: string): Promise<boolean> {
   const { exitCode } = await runGit(["rev-parse", "--verify", `refs/heads/${branchName}`]);
   return exitCode === 0;
+}
+
+async function pruneStaleWorktrees(): Promise<void> {
+  const { exitCode, stderr } = await runGit(["worktree", "prune", "--expire", "now"]);
+
+  if (exitCode !== 0) {
+    throw new Error(`git worktree prune failed (exit ${String(exitCode)}): ${stderr}`);
+  }
 }
 
 async function remoteBranchExists(branchName: string): Promise<boolean> {

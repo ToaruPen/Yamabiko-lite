@@ -10,11 +10,13 @@ import {
   commitAndPushInbox,
   ensureInboxBranch,
   readFileFromBranch,
+  resolveInboxPathsInBranch,
 } from "../../actions/branch.ts";
 import { parseInboxRecords } from "../../schema/inbox-record.ts";
 import { assertValidTransition } from "../../schema/state.ts";
 import { writeJsonlFile } from "../../storage/jsonl.ts";
 import { generateMarkdownSummary } from "../../storage/markdown.ts";
+import { withInboxMutationLock } from "../inbox-lock.ts";
 import { inferRepoFromRemote, parseRepo } from "../parse-repo.ts";
 
 const VALID_RESOLVE_STATUSES: ReadonlySet<string> = new Set(["fixed", "skipped"]);
@@ -37,76 +39,90 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
   const resolveStatus = arguments_.status as InboxStatus;
   const { name, owner } = parseRepo(arguments_.repo);
   const prNumber = parsePrNumber(arguments_.pr);
-  const jsonlPath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${String(prNumber)}.jsonl`;
-  const mdPath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${String(prNumber)}.md`;
 
-  const worktreePath = await ensureInboxBranch(arguments_.branch);
-
-  try {
-    const content = await readFileFromBranch(arguments_.branch, jsonlPath);
-    const records: InboxRecord[] = content ? parseInboxRecords(content) : [];
-
-    const rawLineCount = content
-      ? content
-          .trim()
-          .split("\n")
-          .filter((line) => line.trim() !== "").length
-      : 0;
-    if (records.length < rawLineCount) {
-      throw new Error(
-        `JSONL integrity check failed: parsed ${String(records.length)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
-      );
-    }
-
-    const recordIndex = records.findIndex((r) => r.id === arguments_.id);
-    if (recordIndex === -1) {
-      throw new Error(`Item not found: ${arguments_.id}`);
-    }
-
-    const record = records[recordIndex];
-    if (!record) {
-      throw new Error(`Item not found: ${arguments_.id}`);
-    }
-
-    const oldStatus = record.status;
-    assertValidTransition(oldStatus, resolveStatus);
-
-    const updatedRecord: InboxRecord = {
-      ...record,
-      status: resolveStatus,
-      updatedAt: new Date().toISOString(),
-    };
-    const updatedRecords = [...records];
-    updatedRecords[recordIndex] = updatedRecord;
-
-    const worktreeJsonlPath = path.join(worktreePath, jsonlPath);
-    await mkdir(path.dirname(worktreeJsonlPath), { recursive: true });
-    await writeJsonlFile(worktreeJsonlPath, updatedRecords);
-
-    const markdown = generateMarkdownSummary(updatedRecords, prNumber, {
-      name,
+  return await withInboxMutationLock(
+    {
+      branch: arguments_.branch,
       owner,
-    });
-    const worktreeMdPath = path.join(worktreePath, mdPath);
-    await mkdir(path.dirname(worktreeMdPath), { recursive: true });
-    await Bun.write(worktreeMdPath, markdown);
+      prNumber,
+      repo: name,
+    },
+    async () => {
+      const worktreePath = await ensureInboxBranch(arguments_.branch);
 
-    await commitAndPushInbox(
-      worktreePath,
-      arguments_.branch,
-      `resolve: ${arguments_.id} → ${resolveStatus}`,
-    );
+      try {
+        const { jsonlPath, mdPath } = await resolveInboxPathsInBranch(
+          arguments_.branch,
+          owner,
+          name,
+          prNumber,
+        );
+        const content = await readFileFromBranch(arguments_.branch, jsonlPath);
+        const records: InboxRecord[] = content ? parseInboxRecords(content) : [];
 
-    return `Resolved: ${arguments_.id} (${oldStatus} → ${resolveStatus})`;
-  } finally {
-    try {
-      await cleanupWorktree(worktreePath);
-    } catch (cleanupError: unknown) {
-      const cleanupMessage =
-        cleanupError instanceof Error ? cleanupError.message : String(cleanupError);
-      console.error(`Warning: worktree cleanup failed: ${cleanupMessage}`);
-    }
-  }
+        const rawLineCount = content
+          ? content
+              .trim()
+              .split("\n")
+              .filter((line) => line.trim() !== "").length
+          : 0;
+        if (records.length < rawLineCount) {
+          throw new Error(
+            `JSONL integrity check failed: parsed ${String(records.length)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
+          );
+        }
+
+        const recordIndex = records.findIndex((r) => r.id === arguments_.id);
+        if (recordIndex === -1) {
+          throw new Error(`Item not found: ${arguments_.id}`);
+        }
+
+        const record = records[recordIndex];
+        if (!record) {
+          throw new Error(`Item not found: ${arguments_.id}`);
+        }
+
+        const oldStatus = record.status;
+        assertValidTransition(oldStatus, resolveStatus);
+
+        const updatedRecord: InboxRecord = {
+          ...record,
+          status: resolveStatus,
+          updatedAt: new Date().toISOString(),
+        };
+        const updatedRecords = [...records];
+        updatedRecords[recordIndex] = updatedRecord;
+
+        const worktreeJsonlPath = path.join(worktreePath, jsonlPath);
+        await mkdir(path.dirname(worktreeJsonlPath), { recursive: true });
+        await writeJsonlFile(worktreeJsonlPath, updatedRecords);
+
+        const markdown = generateMarkdownSummary(updatedRecords, prNumber, {
+          name,
+          owner,
+        });
+        const worktreeMdPath = path.join(worktreePath, mdPath);
+        await mkdir(path.dirname(worktreeMdPath), { recursive: true });
+        await Bun.write(worktreeMdPath, markdown);
+
+        await commitAndPushInbox(
+          worktreePath,
+          arguments_.branch,
+          `resolve: ${arguments_.id} → ${resolveStatus}`,
+        );
+
+        return `Resolved: ${arguments_.id} (${oldStatus} → ${resolveStatus})`;
+      } finally {
+        try {
+          await cleanupWorktree(worktreePath);
+        } catch (cleanupError: unknown) {
+          const cleanupMessage =
+            cleanupError instanceof Error ? cleanupError.message : String(cleanupError);
+          console.error(`Warning: worktree cleanup failed: ${cleanupMessage}`);
+        }
+      }
+    },
+  );
 }
 
 function parsePrNumber(pr: string): number {

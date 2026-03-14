@@ -12,6 +12,7 @@ import {
   commitAndPushInbox as _commitAndPushInbox,
   ensureInboxBranch as _ensureInboxBranch,
   readFileFromBranch as _readFileFromBranch,
+  resolveInboxPathsInBranch as _resolveInboxPathsInBranch,
 } from "./branch.ts";
 
 export interface IngestDeps {
@@ -22,6 +23,7 @@ export interface IngestDeps {
   generateMarkdownSummary?: typeof _generateMarkdownSummary;
   readFileFromBranch?: typeof _readFileFromBranch;
   reconcilePullRequest?: typeof _reconcilePullRequest;
+  resolveInboxPathsInBranch?: typeof _resolveInboxPathsInBranch;
   writeJsonlFile?: typeof _writeJsonlFile;
 }
 
@@ -31,6 +33,11 @@ export interface IngestOptions {
   eventPayload: unknown;
   eventType: string;
   token: string;
+}
+
+interface CanonicalRepoIdentity {
+  owner: string;
+  repo: string;
 }
 
 interface IngestContext {
@@ -77,6 +84,13 @@ function asObject(value: unknown): Record<string, unknown> {
   throw new TypeError("Invalid event payload: object expected");
 }
 
+function canonicalizeRepoIdentity(owner: string, repo: string): CanonicalRepoIdentity {
+  return {
+    owner: owner.toLowerCase(),
+    repo: repo.toLowerCase(),
+  };
+}
+
 function emptyResult(): IngestResult {
   return { added: 0, totalRecords: 0, unchanged: 0, updated: 0 };
 }
@@ -101,10 +115,16 @@ function extractContext(eventType: string, eventPayload: unknown): IngestContext
     throw new TypeError("Invalid event payload: repository owner/name missing");
   }
 
+  const canonicalRepoIdentity = canonicalizeRepoIdentity(owner, repo);
+
   if (eventType === "issue_comment") {
     const issue = asObject(payload["issue"]);
     if (issue["pull_request"] === undefined) return undefined;
-    return { owner, prNumber: toPullRequestNumber(issue["number"]), repo };
+    return {
+      owner: canonicalRepoIdentity.owner,
+      prNumber: toPullRequestNumber(issue["number"]),
+      repo: canonicalRepoIdentity.repo,
+    };
   }
 
   if (eventType === "pull_request_review" || eventType === "pull_request_review_comment") {
@@ -115,9 +135,9 @@ function extractContext(eventType: string, eventPayload: unknown): IngestContext
       throw new TypeError("Invalid event payload: pull_request.head.sha missing");
     }
     return {
-      owner,
+      owner: canonicalRepoIdentity.owner,
       prNumber: toPullRequestNumber(pullRequest["number"]),
-      repo,
+      repo: canonicalRepoIdentity.repo,
       reviewHeadSha: headSha,
     };
   }
@@ -161,6 +181,7 @@ function resolveIngestDeps(deps: IngestDeps): ResolvedIngestDeps {
     generateMarkdownSummary: deps.generateMarkdownSummary ?? _generateMarkdownSummary,
     readFileFromBranch: deps.readFileFromBranch ?? _readFileFromBranch,
     reconcilePullRequest: deps.reconcilePullRequest ?? _reconcilePullRequest,
+    resolveInboxPathsInBranch: deps.resolveInboxPathsInBranch ?? _resolveInboxPathsInBranch,
     writeJsonlFile: deps.writeJsonlFile ?? _writeJsonlFile,
   };
 }
@@ -171,8 +192,12 @@ async function runIngestion(
   worktreePath: string,
   deps: ResolvedIngestDeps,
 ): Promise<IngestResult> {
-  const jsonlPath = `.yamabiko-lite/inbox/${context.owner}/${context.repo}/pr-${String(context.prNumber)}.jsonl`;
-  const mdPath = `.yamabiko-lite/inbox/${context.owner}/${context.repo}/pr-${String(context.prNumber)}.md`;
+  const { jsonlPath, mdPath } = await deps.resolveInboxPathsInBranch(
+    options.branchName,
+    context.owner,
+    context.repo,
+    context.prNumber,
+  );
 
   const existingJsonl = await deps.readFileFromBranch(options.branchName, jsonlPath);
   const existingRecords = existingJsonl ? parseInboxRecords(existingJsonl) : [];

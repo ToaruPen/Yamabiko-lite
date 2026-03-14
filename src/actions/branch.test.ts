@@ -6,6 +6,7 @@ import {
   ensureInboxBranch,
   fetchInboxBranch,
   readFileFromBranch,
+  resolveInboxPathsInBranch,
 } from "./branch.ts";
 
 function createMockSubprocess(standardOutput: string, exitCode: number, standardError = "") {
@@ -74,6 +75,57 @@ describe("readFileFromBranch", () => {
 
     const result = await readFileFromBranch("yamabiko-lite-inbox", "data.jsonl");
     expect(result).toBeNull();
+
+    spawnMock.mockRestore();
+  });
+});
+
+describe("resolveInboxPathsInBranch", () => {
+  it("returns canonical paths when no legacy path exists", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("", 0) as any,
+    );
+
+    const result = await resolveInboxPathsInBranch("inbox", "owner", "repo", 42);
+
+    expect(result).toEqual({
+      jsonlPath: ".yamabiko-lite/inbox/owner/repo/pr-42.jsonl",
+      mdPath: ".yamabiko-lite/inbox/owner/repo/pr-42.md",
+    });
+
+    spawnMock.mockRestore();
+  });
+
+  it("reuses legacy mixed-case paths when they already exist", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () =>
+        createMockSubprocess(
+          ".yamabiko-lite/inbox/Owner/Repo/pr-42.jsonl\n.yamabiko-lite/inbox/Owner/Repo/pr-42.md\n",
+          0,
+        ) as any,
+    );
+
+    const result = await resolveInboxPathsInBranch("inbox", "owner", "repo", 42);
+
+    expect(result).toEqual({
+      jsonlPath: ".yamabiko-lite/inbox/Owner/Repo/pr-42.jsonl",
+      mdPath: ".yamabiko-lite/inbox/Owner/Repo/pr-42.md",
+    });
+
+    spawnMock.mockRestore();
+  });
+
+  it("falls back to canonical paths when ls-tree reports missing refs with capitalized stderr", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("", 128, "fatal: Not a valid object name inbox") as any,
+    );
+
+    const result = await resolveInboxPathsInBranch("inbox", "owner", "repo", 42);
+
+    expect(result).toEqual({
+      jsonlPath: ".yamabiko-lite/inbox/owner/repo/pr-42.jsonl",
+      mdPath: ".yamabiko-lite/inbox/owner/repo/pr-42.md",
+    });
 
     spawnMock.mockRestore();
   });
@@ -258,6 +310,62 @@ describe("ensureInboxBranch", () => {
     );
     expect(orphanCall).toBeUndefined();
 
+    spawnMock.mockRestore();
+  });
+
+  it("prunes stale worktree metadata before creating a new inbox worktree", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("ls-remote")) {
+        return createMockSubprocess("abc123\trefs/heads/yamabiko/inbox\n", 0) as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
+
+    await ensureInboxBranch("yamabiko/inbox");
+
+    const commandCalls = spawnMock.mock.calls.map(
+      (callArguments: any) => callArguments[0] as string[],
+    );
+    const pruneCallIndex = commandCalls.findIndex(
+      (commandArguments) =>
+        commandArguments.includes("worktree") && commandArguments.includes("prune"),
+    );
+    const addCallIndex = commandCalls.findIndex(
+      (commandArguments) =>
+        commandArguments.includes("worktree") &&
+        commandArguments.includes("add") &&
+        !commandArguments.includes("--orphan"),
+    );
+
+    expect(pruneCallIndex).toBeGreaterThanOrEqual(0);
+    expect(addCallIndex).toBeGreaterThan(pruneCallIndex);
+
+    spawnMock.mockRestore();
+  });
+
+  it("continues when worktree prune fails", async () => {
+    const errorMock = spyOn(console, "error").mockImplementation(() => void 0);
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("worktree") && commandArguments.includes("prune")) {
+        return createMockSubprocess("", 1, "fatal: prune failed") as any;
+      }
+
+      if (commandArguments.includes("ls-remote")) {
+        return createMockSubprocess("abc123\trefs/heads/yamabiko/inbox\n", 0) as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
+
+    const result = await ensureInboxBranch("yamabiko/inbox");
+
+    expect(result).toMatch(/yamabiko-inbox-/);
+    expect(errorMock).toHaveBeenCalledWith(
+      "Warning: inbox worktree prune failed: git worktree prune failed (exit 1): fatal: prune failed",
+    );
+
+    errorMock.mockRestore();
     spawnMock.mockRestore();
   });
 
