@@ -14,9 +14,14 @@
 - Keep v1 file-based and local-first. Do not add a server, queue, or database
   unless the docs are explicitly updated first.
 - Prefer a dedicated inbox branch over writing to the default branch.
-- Treat autonomous code mutation as out of scope for v1.
+- Treat autonomous background code mutation as out of scope for v1.
 - Keep formats simple: Markdown for summaries and JSONL for machine-readable
   inbox records.
+- GitHub Actions must stay non-mutating with respect to PR branches.
+- The authoring agent may fix, test, commit, and push after `/check-inbox` or
+  equivalent user intent.
+- Escalate to the human for specification disputes, security-sensitive changes,
+  dependency additions, or merge decisions.
 
 ## HOW
 - Optimize for the smallest useful workflow that developers can run every day.

@@ -13,7 +13,7 @@ The v1 system is intentionally simpler than Yamabiko:
 - no always-on webhook server
 - no database
 - no queue worker
-- no autonomous fix-and-push loop
+- no autonomous background fix-and-push loop
 - yes to durable inbox records
 - yes to repeated review-cycle tracking
 - yes to stale-head-aware triage
@@ -27,8 +27,8 @@ Yamabiko-lite optimizes for the opposite workflow:
 1. PR is created
 2. review bots leave feedback
 3. GitHub Actions stores normalized feedback into an inbox
-4. the original authoring agent runs `/check-inbox`
-5. fixes are applied with existing context, then pushed
+4. the original authoring agent runs `/check-inbox` or receives "check it"
+5. the agent fixes, tests, commits, and pushes with existing context
 6. review is requested again until merge
 
 ## Design Principles
@@ -38,6 +38,7 @@ Yamabiko-lite optimizes for the opposite workflow:
 - Use stable IDs and head SHA checks to avoid duplicate or stale work
 - Treat bot feedback as structured work items, not free-form chat history
 - Optimize for low quota and low latency in day-to-day development
+- Reserve human attention for specification decisions and merge decisions
 
 ## Planned V1
 
@@ -46,13 +47,21 @@ Yamabiko-lite optimizes for the opposite workflow:
 - JSONL inbox records plus a human-readable Markdown summary per PR
 - Local CLI helpers for listing and resolving inbox items
 - A `/check-inbox` skill contract for Codex-driven remediation
+- Authoring-agent execution from inbox item to test, commit, and push
 
 ## Non-Goals For V1
 
-- autonomous background code mutation
-- automatic commits and pushes from the ingestion workflow
+- autonomous background code mutation without an active authoring session
+- automatic commits and pushes from the ingestion workflow itself
 - cross-repository central service
 - database-backed analytics
+
+## Operating Model
+
+- GitHub Actions acts as a non-mutating inbox writer
+- The authoring agent acts as the mutating executor after `/check-inbox`
+- Humans should only need to intervene for root specification questions,
+  policy-level tradeoffs, or final merge decisions
 
 ## Repository Layout
 

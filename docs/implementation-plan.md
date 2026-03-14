@@ -34,12 +34,14 @@ The system should make the following workflow routine:
 - expose a deterministic read path for `/check-inbox`
 - support item states such as `pending`, `claimed`, `fixed`, and `skipped`
 - record the `headSha` seen when feedback was produced
+- allow the active authoring agent to fix, test, commit, and push after an
+  explicit `/check-inbox` or equivalent instruction
 
 ### Out of Scope
 
 - autonomous patch generation in the ingestion workflow
 - containerized fix execution from the workflow
-- automatic commits and pushes after reading the inbox
+- fully autonomous mutation without an active authoring session
 - background daemons, queues, or databases
 
 ## Core Architecture
@@ -57,6 +59,7 @@ Responsibilities:
   `repository`, `pullRequestNumber`, and `headSha`
 - build one inbox record per actionable item
 - upsert that record onto the inbox branch
+- never modify the PR branch directly
 
 ### 2. Durable Storage
 
@@ -87,6 +90,14 @@ filters items by:
 
 The consumer then presents an ordered worklist to the active session.
 
+From there, the active authoring agent is expected to:
+
+- inspect the highest-signal inbox items
+- apply code fixes in the current working session
+- run relevant tests or checks
+- commit and push the changes
+- update inbox item state after acting
+
 ### 4. Resolution
 
 After a fix or explicit skip, the consumer updates the matching inbox item:
@@ -97,6 +108,52 @@ After a fix or explicit skip, the consumer updates the matching inbox item:
 
 This update happens explicitly from the authoring session, not from the
 ingestion workflow.
+
+## Responsibility Model
+
+### GitHub Actions
+
+- capture supported review events
+- normalize and deduplicate them
+- write durable inbox records
+- avoid any direct code mutation on the PR branch
+
+### Authoring Agent
+
+- run `/check-inbox` or respond to "check it"
+- decide whether each inbox item is implementation-level or requires
+  escalation
+- fix implementation-level issues in the current session
+- run targeted verification
+- commit and push safe changes
+- mark inbox items as `fixed`, `skipped`, or `stale`
+
+### Human
+
+- decide root specification questions
+- resolve ambiguous or conflicting review feedback
+- approve major design changes, dependency additions, or security-sensitive
+  changes
+- decide whether to merge
+
+## Escalation Policy
+
+The authoring agent should stop and ask for human input when an inbox item
+implies any of the following:
+
+- the reviewer is challenging the intended product behavior or business rule
+- the fix requires a meaningful architecture or API contract change
+- the fix requires a new dependency or permission expansion
+- the fix is security-sensitive or changes trust boundaries
+- reviewer feedback conflicts with existing documented intent
+- the correct resolution cannot be derived from repository facts
+
+The authoring agent should proceed without asking when the item is clearly:
+
+- a localized implementation bug
+- a lint, type, or test issue
+- a narrow refactor within existing design boundaries
+- an inline review suggestion with a bounded code target
 
 ## Inbox Record Schema
 
@@ -152,6 +209,7 @@ Rules:
 - ingestion only creates or refreshes `pending`
 - `/check-inbox` may mark `claimed`
 - resolution commands may mark `fixed`, `skipped`, or `stale`
+- `fixed` and `skipped` updates are normally written by the authoring agent
 
 ## GitHub Actions Design
 
@@ -193,8 +251,10 @@ The `/check-inbox` skill should:
 1. detect the current repository and PR
 2. load unresolved inbox items
 3. filter out stale records
-4. present the next highest-signal items first
-5. mark items as resolved after the session acts
+4. classify items into auto-fixable versus human-decision-required
+5. present the next highest-signal items first
+6. fix, test, commit, and push when the item is safely actionable
+7. mark items as resolved after the session acts
 
 ## Suggested Implementation Order
 
@@ -221,6 +281,7 @@ The `/check-inbox` skill should:
 - implement claim and resolve commands
 - update JSONL and Markdown summaries
 - define how `/check-inbox` calls the CLI
+- define agent-side commit and push behavior after successful fixes
 
 ### Phase 5: Optional extensions
 
@@ -239,6 +300,7 @@ The MVP is successful when:
   repository context
 - resolved items stop reappearing in the active inbox
 - the workflow stays understandable without server infrastructure
+- humans are only interrupted for specification or merge-level decisions
 
 ## Open Questions
 
