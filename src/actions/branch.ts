@@ -77,73 +77,17 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
   const suffix = `${String(Date.now())}-${Math.random().toString(36).slice(2, 10)}`;
   const worktreePath = path.join(tmpdir(), `yamabiko-inbox-${suffix}`);
 
-  const { exitCode, stderr, stdout } = await runGit(["ls-remote", "--heads", "origin", branchName]);
+  const remoteExists = await remoteBranchExists(branchName);
 
-  if (exitCode !== 0) {
-    throw new Error(
-      `git ls-remote failed for branch "${branchName}": ${stderr || `exit code ${String(exitCode)}`}`,
-    );
-  }
-
-  if (stdout.trim()) {
-    const { exitCode: fetchExitCode, stderr: fetchStderr } = await runGit([
-      "fetch",
-      "origin",
-      `+${branchName}:${branchName}`,
-    ]);
-
-    if (fetchExitCode !== 0) {
-      throw new Error(`git fetch failed (exit ${String(fetchExitCode)}): ${fetchStderr}`);
-    }
-
-    const { exitCode: worktreeExitCode, stderr: worktreeStderr } = await runGit([
-      "worktree",
-      "add",
-      worktreePath,
-      branchName,
-    ]);
-
-    if (worktreeExitCode !== 0) {
-      throw new Error(
-        `git worktree add failed (exit ${String(worktreeExitCode)}): ${worktreeStderr}`,
-      );
-    }
+  if (remoteExists) {
+    await fetchBranch(branchName);
+    await addWorktree(worktreePath, branchName);
   } else {
-    const { exitCode: localExitCode } = await runGit([
-      "rev-parse",
-      "--verify",
-      `refs/heads/${branchName}`,
-    ]);
+    const localExists = await localBranchExists(branchName);
 
-    if (localExitCode === 0) {
-      const { exitCode: worktreeExitCode, stderr: worktreeStderr } = await runGit([
-        "worktree",
-        "add",
-        worktreePath,
-        branchName,
-      ]);
-
-      if (worktreeExitCode !== 0) {
-        throw new Error(
-          `git worktree add failed (exit ${String(worktreeExitCode)}): ${worktreeStderr}`,
-        );
-      }
-    } else {
-      const { exitCode: orphanExitCode, stderr: orphanStderr } = await runGit([
-        "worktree",
-        "add",
-        "--orphan",
-        "-b",
-        branchName,
-        worktreePath,
-      ]);
-
-      if (orphanExitCode !== 0) {
-        throw new Error(
-          `git worktree add --orphan failed (exit ${String(orphanExitCode)}): ${orphanStderr}`,
-        );
-      }
-    }
+    await (localExists
+      ? addWorktree(worktreePath, branchName)
+      : addOrphanWorktree(worktreePath, branchName));
   }
 
   return worktreePath;
@@ -180,6 +124,60 @@ export async function readFileFromBranch(
   }
 
   return stdout;
+}
+
+async function addOrphanWorktree(worktreePath: string, branchName: string): Promise<void> {
+  const { exitCode, stderr } = await runGit([
+    "worktree",
+    "add",
+    "--orphan",
+    "-b",
+    branchName,
+    worktreePath,
+  ]);
+
+  if (exitCode !== 0) {
+    throw new Error(`git worktree add --orphan failed (exit ${String(exitCode)}): ${stderr}`);
+  }
+}
+
+async function addWorktree(worktreePath: string, branchName: string): Promise<void> {
+  const { exitCode, stderr } = await runGit(["worktree", "add", worktreePath, branchName]);
+
+  if (exitCode !== 0) {
+    throw new Error(`git worktree add failed (exit ${String(exitCode)}): ${stderr}`);
+  }
+}
+
+async function fetchBranch(branchName: string): Promise<void> {
+  const { exitCode, stderr } = await runGit(["fetch", "origin", `+${branchName}:${branchName}`]);
+
+  if (exitCode !== 0) {
+    throw new Error(`git fetch failed (exit ${String(exitCode)}): ${stderr}`);
+  }
+}
+
+async function localBranchExists(branchName: string): Promise<boolean> {
+  const { exitCode } = await runGit(["rev-parse", "--verify", `refs/heads/${branchName}`]);
+  return exitCode === 0;
+}
+
+async function remoteBranchExists(branchName: string): Promise<boolean> {
+  const { exitCode, stderr, stdout } = await runGit([
+    "ls-remote",
+    "--exit-code",
+    "--heads",
+    "origin",
+    `refs/heads/${branchName}`,
+  ]);
+
+  if (exitCode !== 0 && exitCode !== 2) {
+    throw new Error(
+      `git ls-remote failed for branch "${branchName}": ${stderr || `exit code ${String(exitCode)}`}`,
+    );
+  }
+
+  return exitCode === 0 && stdout.trim() !== "";
 }
 
 async function runGit(

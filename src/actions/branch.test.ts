@@ -263,7 +263,7 @@ describe("ensureInboxBranch", () => {
   it("throws when git ls-remote exits non-zero", async () => {
     const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
       if (commandArguments.includes("ls-remote")) {
-        return createMockSubprocess("", 2, "fatal: unable to access remote") as any;
+        return createMockSubprocess("", 128, "fatal: unable to access remote") as any;
       }
       return createMockSubprocess("", 0) as any;
     });
