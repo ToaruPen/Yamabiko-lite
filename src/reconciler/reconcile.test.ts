@@ -156,7 +156,7 @@ describe("reconcilePullRequest", () => {
 
   it("retries once on transient API failure and succeeds", async () => {
     let reviewAttempts = 0;
-    const sleepSpy = spyOn(Bun, "sleep").mockResolvedValue(0);
+    const sleepSpy = spyOn(Bun, "sleep").mockImplementation(() => Promise.resolve());
 
     spyOn(githubApi, "fetchPullRequestReviews").mockImplementation(async () => {
       reviewAttempts += 1;
@@ -188,12 +188,11 @@ describe("reconcilePullRequest", () => {
     ]);
 
     const result = await reconcilePullRequest(baseOptions);
+    const eventTypes = result.records.map((record) => record.eventType);
 
     expect(result.records).toHaveLength(3);
-    expect(result.records.map((record) => record.eventType).toSorted()).toEqual([
-      "issue_comment",
-      "pull_request_review",
-      "pull_request_review_comment",
-    ]);
+    expect(eventTypes).toContain("issue_comment");
+    expect(eventTypes).toContain("pull_request_review");
+    expect(eventTypes).toContain("pull_request_review_comment");
   });
 });
