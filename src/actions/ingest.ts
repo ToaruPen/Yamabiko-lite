@@ -71,6 +71,18 @@ export async function ingest(options: IngestOptions, deps: IngestDeps = {}): Pro
   try {
     const existingJsonl = await readFileFromBranch(options.branchName, jsonlPath);
     const existingRecords = existingJsonl ? parseInboxRecords(existingJsonl) : [];
+
+    const rawLineCount = existingJsonl
+      ? existingJsonl
+          .trim()
+          .split("\n")
+          .filter((line) => line.trim() !== "").length
+      : 0;
+    if (existingRecords.length < rawLineCount) {
+      throw new Error(
+        `JSONL integrity check failed: parsed ${String(existingRecords.length)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
+      );
+    }
     const headSha =
       context.reviewHeadSha ??
       (await fetchPullRequestHeadSha(context.owner, context.repo, context.prNumber, options.token));
