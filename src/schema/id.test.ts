@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { extractDeduplicationKey, generateRecordId } from "./id";
+import { extractDeduplicationKey, generateRecordId } from "./id.ts";
 
 describe("generateRecordId", () => {
   it("is deterministic: same input produces same ID", () => {

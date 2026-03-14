@@ -13,6 +13,7 @@ jobs:
     if: github.event.sender.type == 'Bot' && (github.event_name != 'issue_comment' || github.event.issue.pull_request != null)
     permissions:
       contents: write
+      issues: read
       pull-requests: read
     concurrency:
       group: inbox-write-${{ github.repository }}

@@ -1,12 +1,12 @@
 /* eslint-disable unicorn/no-null */
-import type { InboxRecord } from "../schema/inbox-record";
+import type { InboxRecord } from "../schema/inbox-record.ts";
 import type {
   IssueCommentEvent,
   PullRequestReviewCommentEvent,
   PullRequestReviewEvent,
-} from "./types";
+} from "./types.ts";
 
-import { generateRecordId } from "../schema/id";
+import { generateRecordId } from "../schema/id.ts";
 
 export function normalizeEvent(
   eventType: string,

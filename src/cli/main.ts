@@ -1,6 +1,8 @@
 #!/usr/bin/env bun
 import { defineCommand, runMain } from "citty";
 
+import packageJson from "../../package.json";
+
 const inbox = defineCommand({
   meta: {
     description: "Manage inbox items",
@@ -17,7 +19,7 @@ const main = defineCommand({
   meta: {
     description: "Lightweight inbox-driven PR remediation",
     name: "yamabiko-lite",
-    version: "0.1.0",
+    version: packageJson.version,
   },
   subCommands: {
     inbox,
