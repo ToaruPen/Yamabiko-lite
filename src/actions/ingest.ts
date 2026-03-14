@@ -1,18 +1,29 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
-import { fetchPullRequestHeadSha } from "../api/github.ts";
+import { fetchPullRequestHeadSha as _fetchPullRequestHeadSha } from "../api/github.ts";
 import { DEFAULT_BOT_ALLOWLIST, parseBotAllowlist } from "../normalizer/bot-filter.ts";
-import { reconcilePullRequest } from "../reconciler/reconcile.ts";
+import { reconcilePullRequest as _reconcilePullRequest } from "../reconciler/reconcile.ts";
 import { parseInboxRecords } from "../schema/inbox-record.ts";
-import { writeJsonlFile } from "../storage/jsonl.ts";
-import { generateMarkdownSummary } from "../storage/markdown.ts";
+import { writeJsonlFile as _writeJsonlFile } from "../storage/jsonl.ts";
+import { generateMarkdownSummary as _generateMarkdownSummary } from "../storage/markdown.ts";
 import {
-  cleanupWorktree,
-  commitAndPushInbox,
-  ensureInboxBranch,
-  readFileFromBranch,
+  cleanupWorktree as _cleanupWorktree,
+  commitAndPushInbox as _commitAndPushInbox,
+  ensureInboxBranch as _ensureInboxBranch,
+  readFileFromBranch as _readFileFromBranch,
 } from "./branch.ts";
+
+export interface IngestDeps {
+  cleanupWorktree?: typeof _cleanupWorktree;
+  commitAndPushInbox?: typeof _commitAndPushInbox;
+  ensureInboxBranch?: typeof _ensureInboxBranch;
+  fetchPullRequestHeadSha?: typeof _fetchPullRequestHeadSha;
+  generateMarkdownSummary?: typeof _generateMarkdownSummary;
+  readFileFromBranch?: typeof _readFileFromBranch;
+  reconcilePullRequest?: typeof _reconcilePullRequest;
+  writeJsonlFile?: typeof _writeJsonlFile;
+}
 
 export interface IngestOptions {
   allowlist: readonly string[];
@@ -36,7 +47,20 @@ interface IngestContext {
   reviewHeadSha?: string;
 }
 
-export async function ingest(options: IngestOptions): Promise<IngestResult> {
+type ResolvedIngestDeps = Required<IngestDeps>;
+
+export async function ingest(options: IngestOptions, deps: IngestDeps = {}): Promise<IngestResult> {
+  const {
+    cleanupWorktree,
+    commitAndPushInbox,
+    ensureInboxBranch,
+    fetchPullRequestHeadSha,
+    generateMarkdownSummary,
+    readFileFromBranch,
+    reconcilePullRequest,
+    writeJsonlFile,
+  } = resolveIngestDeps(deps);
+
   const context = extractContext(options.eventType, options.eventPayload);
   if (context === undefined) return { added: 0, totalRecords: 0, unchanged: 0, updated: 0 };
 
@@ -87,6 +111,16 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
   }
 }
 
+if (import.meta.main) {
+  try {
+    await main();
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exitCode = 1;
+  }
+}
+
 export async function main(): Promise<void> {
   const eventType = process.env["GITHUB_EVENT_NAME"];
   const eventPath = process.env["GITHUB_EVENT_PATH"];
@@ -111,16 +145,6 @@ export async function main(): Promise<void> {
   });
 
   console.log(JSON.stringify(result));
-}
-
-if (import.meta.main) {
-  try {
-    await main();
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(message);
-    process.exitCode = 1;
-  }
 }
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -162,6 +186,19 @@ function extractContext(eventType: string, eventPayload: unknown): IngestContext
   }
 
   throw new Error(`Unsupported event type: ${eventType}`);
+}
+
+function resolveIngestDeps(deps: IngestDeps): ResolvedIngestDeps {
+  return {
+    cleanupWorktree: deps.cleanupWorktree ?? _cleanupWorktree,
+    commitAndPushInbox: deps.commitAndPushInbox ?? _commitAndPushInbox,
+    ensureInboxBranch: deps.ensureInboxBranch ?? _ensureInboxBranch,
+    fetchPullRequestHeadSha: deps.fetchPullRequestHeadSha ?? _fetchPullRequestHeadSha,
+    generateMarkdownSummary: deps.generateMarkdownSummary ?? _generateMarkdownSummary,
+    readFileFromBranch: deps.readFileFromBranch ?? _readFileFromBranch,
+    reconcilePullRequest: deps.reconcilePullRequest ?? _reconcilePullRequest,
+    writeJsonlFile: deps.writeJsonlFile ?? _writeJsonlFile,
+  };
 }
 
 function toPullRequestNumber(value: unknown): number {

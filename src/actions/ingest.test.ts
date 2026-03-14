@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:te
 import path from "node:path";
 
 import type { InboxRecord } from "../schema/inbox-record.ts";
+import type { IngestDeps, IngestOptions } from "./ingest.ts";
+
+import { ingest } from "./ingest.ts";
 
 const mockCleanupWorktree = mock<(worktreePath: string) => Promise<void>>();
 const mockCommitAndPushInbox =
@@ -34,40 +37,16 @@ const mockGenerateMarkdownSummary =
     ) => string
   >();
 
-mock.module("./branch.ts", () => ({
-  cleanupWorktree: (...arguments_: Parameters<typeof mockCleanupWorktree>) =>
-    mockCleanupWorktree(...arguments_),
-  commitAndPushInbox: (...arguments_: Parameters<typeof mockCommitAndPushInbox>) =>
-    mockCommitAndPushInbox(...arguments_),
-  ensureInboxBranch: (...arguments_: Parameters<typeof mockEnsureInboxBranch>) =>
-    mockEnsureInboxBranch(...arguments_),
-  readFileFromBranch: (...arguments_: Parameters<typeof mockReadFileFromBranch>) =>
-    mockReadFileFromBranch(...arguments_),
-}));
-
-mock.module("../api/github.ts", () => ({
-  fetchPullRequestHeadSha: (...arguments_: Parameters<typeof mockFetchPullRequestHeadSha>) =>
-    mockFetchPullRequestHeadSha(...arguments_),
-}));
-
-mock.module("../reconciler/reconcile.ts", () => ({
-  reconcilePullRequest: (...arguments_: Parameters<typeof mockReconcilePullRequest>) =>
-    mockReconcilePullRequest(...arguments_),
-}));
-
-mock.module("../storage/jsonl.ts", () => ({
-  writeJsonlFile: (...arguments_: Parameters<typeof mockWriteJsonlFile>) =>
-    mockWriteJsonlFile(...arguments_),
-}));
-
-mock.module("../storage/markdown.ts", () => ({
-  generateMarkdownSummary: (...arguments_: Parameters<typeof mockGenerateMarkdownSummary>) =>
-    mockGenerateMarkdownSummary(...arguments_),
-}));
-
-import type { IngestOptions } from "./ingest.ts";
-
-import { ingest } from "./ingest.ts";
+const testDeps: IngestDeps = {
+  cleanupWorktree: (...arguments_) => mockCleanupWorktree(...arguments_),
+  commitAndPushInbox: (...arguments_) => mockCommitAndPushInbox(...arguments_),
+  ensureInboxBranch: (...arguments_) => mockEnsureInboxBranch(...arguments_),
+  fetchPullRequestHeadSha: (...arguments_) => mockFetchPullRequestHeadSha(...arguments_),
+  generateMarkdownSummary: (...arguments_) => mockGenerateMarkdownSummary(...arguments_),
+  readFileFromBranch: (...arguments_) => mockReadFileFromBranch(...arguments_),
+  reconcilePullRequest: (...arguments_) => mockReconcilePullRequest(...arguments_),
+  writeJsonlFile: (...arguments_) => mockWriteJsonlFile(...arguments_),
+};
 
 function makeOptions(overrides: Partial<IngestOptions> = {}): IngestOptions {
   return {
@@ -146,7 +125,7 @@ describe("ingest", () => {
       updated: 2,
     });
 
-    const result = await ingest(makeOptions());
+    const result = await ingest(makeOptions(), testDeps);
 
     expect(result).toEqual({ added: 1, totalRecords: 1, unchanged: 3, updated: 2 });
     expect(mockEnsureInboxBranch).toHaveBeenCalledWith("yamabiko-lite-inbox");
@@ -181,6 +160,7 @@ describe("ingest", () => {
         },
         eventType: "issue_comment",
       }),
+      testDeps,
     );
 
     expect(result).toEqual({ added: 0, totalRecords: 0, unchanged: 0, updated: 0 });
@@ -214,6 +194,7 @@ describe("ingest", () => {
         },
         eventType: "issue_comment",
       }),
+      testDeps,
     );
 
     expect(result).toEqual({ added: 1, totalRecords: 1, unchanged: 0, updated: 0 });
@@ -237,7 +218,7 @@ describe("ingest", () => {
       updated: 1,
     });
 
-    const result = await ingest(makeOptions());
+    const result = await ingest(makeOptions(), testDeps);
 
     expect(result).toEqual({ added: 0, totalRecords: 1, unchanged: 0, updated: 1 });
     expect(mockReconcilePullRequest.mock.calls[0]?.[0].existingRecords).toEqual([existing]);
@@ -253,7 +234,7 @@ describe("ingest", () => {
     let thrown: unknown;
 
     try {
-      await ingest(makeOptions());
+      await ingest(makeOptions(), testDeps);
     } catch (error: unknown) {
       thrown = error;
     }
