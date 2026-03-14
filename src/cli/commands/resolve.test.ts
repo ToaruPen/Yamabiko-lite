@@ -31,6 +31,13 @@ const mockCommitAndPushInbox =
 const mockCleanupWorktree = mock<(worktreePath: string) => Promise<void>>();
 const mockWriteJsonlFile =
   mock<(filePath: string, records: readonly InboxRecord[]) => Promise<void>>();
+const mockResolveInboxPathsInBranch = mock(
+  (_branch: string, owner: string, repo: string, prNumber: number) =>
+    Promise.resolve({
+      jsonlPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.jsonl`,
+      mdPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.md`,
+    }),
+);
 const mockWithInboxMutationLock = mock(<T>(_: unknown, operation: () => Promise<T>) => operation());
 
 mock.module("../../actions/branch.ts", () => ({
@@ -42,6 +49,8 @@ mock.module("../../actions/branch.ts", () => ({
     mockEnsureInboxBranch(...arguments_),
   readFileFromBranch: (...arguments_: Parameters<typeof mockReadFileFromBranch>) =>
     mockReadFileFromBranch(...arguments_),
+  resolveInboxPathsInBranch: (...arguments_: Parameters<typeof mockResolveInboxPathsInBranch>) =>
+    mockResolveInboxPathsInBranch(...arguments_),
 }));
 
 mock.module("../../storage/jsonl.ts", () => ({
@@ -63,12 +72,20 @@ beforeEach(() => {
   mockCommitAndPushInbox.mockReset();
   mockCleanupWorktree.mockReset();
   mockWriteJsonlFile.mockReset();
+  mockResolveInboxPathsInBranch.mockReset();
   mockWithInboxMutationLock.mockReset();
 
   mockEnsureInboxBranch.mockResolvedValue("/tmp/yamabiko-inbox-test");
   mockCommitAndPushInbox.mockResolvedValue(true);
   mockCleanupWorktree.mockResolvedValue();
   mockWriteJsonlFile.mockResolvedValue();
+  mockResolveInboxPathsInBranch.mockImplementation(
+    (_branch: string, owner: string, repo: string, prNumber: number) =>
+      Promise.resolve({
+        jsonlPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.jsonl`,
+        mdPath: `.yamabiko-lite/inbox/${owner}/${repo}/pr-${String(prNumber)}.md`,
+      }),
+  );
   mockWithInboxMutationLock.mockImplementation(<T>(_: unknown, operation: () => Promise<T>) =>
     operation(),
   );
@@ -80,6 +97,7 @@ afterEach(() => {
   mockCommitAndPushInbox.mockReset();
   mockCleanupWorktree.mockReset();
   mockWriteJsonlFile.mockReset();
+  mockResolveInboxPathsInBranch.mockReset();
   mockWithInboxMutationLock.mockReset();
 });
 
@@ -131,6 +149,27 @@ describe("inbox resolve", () => {
     );
     expect(mockWriteJsonlFile.mock.calls[0]?.[0]).toBe(
       "/tmp/yamabiko-inbox-test/.yamabiko-lite/inbox/owner/repo/pr-1.jsonl",
+    );
+  });
+
+  test("reuses a legacy mixed-case inbox path when one already exists", async () => {
+    const record = makeRecord({ id: "github-pull_request_review_comment-100", status: "claimed" });
+    mockResolveInboxPathsInBranch.mockResolvedValue({
+      jsonlPath: ".yamabiko-lite/inbox/Owner/Repo/pr-1.jsonl",
+      mdPath: ".yamabiko-lite/inbox/Owner/Repo/pr-1.md",
+    });
+    mockReadFileFromBranch.mockResolvedValue(JSON.stringify(record));
+
+    await runResolve({
+      branch: "yamabiko-lite-inbox",
+      id: "github-pull_request_review_comment-100",
+      pr: "1",
+      repo: "owner/repo",
+      status: "fixed",
+    });
+
+    expect(mockWriteJsonlFile.mock.calls[0]?.[0]).toBe(
+      "/tmp/yamabiko-inbox-test/.yamabiko-lite/inbox/Owner/Repo/pr-1.jsonl",
     );
   });
 

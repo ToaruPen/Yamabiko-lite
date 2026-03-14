@@ -10,6 +10,7 @@ import {
   commitAndPushInbox,
   ensureInboxBranch,
   readFileFromBranch,
+  resolveInboxPathsInBranch,
 } from "../../actions/branch.ts";
 import { parseInboxRecords } from "../../schema/inbox-record.ts";
 import { assertValidTransition } from "../../schema/state.ts";
@@ -38,8 +39,6 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
   const resolveStatus = arguments_.status as InboxStatus;
   const { name, owner } = parseRepo(arguments_.repo);
   const prNumber = parsePrNumber(arguments_.pr);
-  const jsonlPath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${String(prNumber)}.jsonl`;
-  const mdPath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${String(prNumber)}.md`;
 
   return await withInboxMutationLock(
     {
@@ -52,6 +51,12 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
       const worktreePath = await ensureInboxBranch(arguments_.branch);
 
       try {
+        const { jsonlPath, mdPath } = await resolveInboxPathsInBranch(
+          arguments_.branch,
+          owner,
+          name,
+          prNumber,
+        );
         const content = await readFileFromBranch(arguments_.branch, jsonlPath);
         const records: InboxRecord[] = content ? parseInboxRecords(content) : [];
 
