@@ -4,4 +4,4 @@
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
-| pending | github-issue_comment-4060556051 | coderabbitai[bot] |  | <!-- This is an auto-generated comment: summarize by coderabbit.ai --> <!-- This... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/6#issuecomment-4060556051) |
+| pending | github-issue_comment-4060556051 | coderabbitai[bot] |  | <!-- This is an auto-generated comment: summarize by coderabbit.ai --> No action... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/6#issuecomment-4060556051) |
