@@ -58,13 +58,13 @@ async function claimInboxItem(options: ClaimOptions): Promise<string> {
   const jsonlRelativePath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${String(prNumber)}.jsonl`;
   const mdRelativePath = `.yamabiko-lite/inbox/${owner}/${name}/pr-${String(prNumber)}.md`;
 
-  const content = await readFileFromBranch(branch, jsonlRelativePath);
-  const records = content ? parseInboxRecords(content) : [];
-
-  const { message, updatedRecords } = applyClaimToRecords(records, id);
-
   const worktreePath = await ensureInboxBranch(branch);
   try {
+    const content = await readFileFromBranch(branch, jsonlRelativePath);
+    const records = content ? parseInboxRecords(content) : [];
+
+    const { message, updatedRecords } = applyClaimToRecords(records, id);
+
     const jsonlFullPath = path.join(worktreePath, jsonlRelativePath);
     const mdFullPath = path.join(worktreePath, mdRelativePath);
 
@@ -75,12 +75,12 @@ async function claimInboxItem(options: ClaimOptions): Promise<string> {
     await Bun.write(mdFullPath, markdown);
 
     await commitAndPushInbox(worktreePath, branch, `claim: ${id}`);
+
+    console.log(message);
+    return message;
   } finally {
     await cleanupWorktree(worktreePath);
   }
-
-  console.log(message);
-  return message;
 }
 
 function parsePrNumber(pr: string): number {

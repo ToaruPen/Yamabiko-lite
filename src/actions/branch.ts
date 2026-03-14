@@ -128,7 +128,11 @@ export async function readFileFromBranch(
   });
 
   if (exitCode === 128) {
-    if (stderr.includes("does not exist") || stderr.includes("exists on disk, but not in")) {
+    if (
+      stderr.includes("does not exist") ||
+      stderr.includes("exists on disk, but not in") ||
+      stderr.includes("invalid object name")
+    ) {
       // eslint-disable-next-line unicorn/no-null -- API contract: null signals missing file
       return null;
     }

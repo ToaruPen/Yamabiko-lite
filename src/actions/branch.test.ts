@@ -54,12 +54,25 @@ describe("readFileFromBranch", () => {
 
   it("throws for exit 128 when error is not missing file", () => {
     const spawnMock = spyOn(Bun, "spawn").mockImplementation(
-      () => createMockSubprocess("", 128, "fatal: invalid object name 'unknown-branch'.") as any,
+      () =>
+        createMockSubprocess("", 128, "fatal: ambiguous argument 'HEAD': unknown revision") as any,
     );
 
     expect(readFileFromBranch("unknown-branch", "missing.txt")).rejects.toThrow(
-      "git show failed (exit 128): fatal: invalid object name 'unknown-branch'.",
+      "git show failed (exit 128): fatal: ambiguous argument 'HEAD': unknown revision",
     );
+
+    spawnMock.mockRestore();
+  });
+
+  it("returns null for unborn orphan branch", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () =>
+        createMockSubprocess("", 128, "fatal: invalid object name 'yamabiko-lite-inbox'") as any,
+    );
+
+    const result = await readFileFromBranch("yamabiko-lite-inbox", "data.jsonl");
+    expect(result).toBeNull();
 
     spawnMock.mockRestore();
   });
