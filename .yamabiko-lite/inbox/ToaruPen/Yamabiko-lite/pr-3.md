@@ -4,5 +4,5 @@
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
-| pending | github-issue_comment-4060258980 | coderabbitai[bot] |  | <!-- This is an auto-generated comment: summarize by coderabbit.ai --> <!-- walk... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/3#issuecomment-4060258980) |
+| pending | github-issue_comment-4060258980 | coderabbitai[bot] |  | <!-- This is an auto-generated comment: summarize by coderabbit.ai --> <!-- This... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/3#issuecomment-4060258980) |
 | pending | github-pull_request_review-3948654745 | coderabbitai[bot] |  |   <details> <summary>🧹 Nitpick comments (1)</summary><blockquote>  <details> <s... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/3#pullrequestreview-3948654745) |
