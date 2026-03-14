@@ -23,44 +23,33 @@ function makeRecord(overrides: Partial<InboxRecord> = {}): InboxRecord {
   };
 }
 
-const mockReadFileFromBranch = mock<
-  (branchName: string, filePath: string) => Promise<null | string>
->();
+const mockReadFileFromBranch =
+  mock<(branchName: string, filePath: string) => Promise<null | string>>();
 const mockEnsureInboxBranch = mock<(branchName: string) => Promise<string>>();
-const mockCommitAndPushInbox = mock<
-  (worktreePath: string, branchName: string, message: string) => Promise<boolean>
->();
+const mockCommitAndPushInbox =
+  mock<(worktreePath: string, branchName: string, message: string) => Promise<boolean>>();
 const mockCleanupWorktree = mock<(worktreePath: string) => Promise<void>>();
-const mockWriteJsonlFile = mock<
-  (filePath: string, records: readonly InboxRecord[]) => Promise<void>
->();
+const mockWriteJsonlFile =
+  mock<(filePath: string, records: readonly InboxRecord[]) => Promise<void>>();
 
 mock.module("../../actions/branch.ts", () => ({
-  cleanupWorktree: (...args: Parameters<typeof mockCleanupWorktree>) =>
-    mockCleanupWorktree(...args),
-  commitAndPushInbox: (...args: Parameters<typeof mockCommitAndPushInbox>) =>
-    mockCommitAndPushInbox(...args),
-  ensureInboxBranch: (...args: Parameters<typeof mockEnsureInboxBranch>) =>
-    mockEnsureInboxBranch(...args),
-  readFileFromBranch: (...args: Parameters<typeof mockReadFileFromBranch>) =>
-    mockReadFileFromBranch(...args),
+  cleanupWorktree: (...arguments_: Parameters<typeof mockCleanupWorktree>) =>
+    mockCleanupWorktree(...arguments_),
+  commitAndPushInbox: (...arguments_: Parameters<typeof mockCommitAndPushInbox>) =>
+    mockCommitAndPushInbox(...arguments_),
+  ensureInboxBranch: (...arguments_: Parameters<typeof mockEnsureInboxBranch>) =>
+    mockEnsureInboxBranch(...arguments_),
+  readFileFromBranch: (...arguments_: Parameters<typeof mockReadFileFromBranch>) =>
+    mockReadFileFromBranch(...arguments_),
 }));
 
 mock.module("../../storage/jsonl.ts", () => ({
   readJsonlFile: () => {
     throw new Error("readJsonlFile should not be called in resolve");
   },
-  writeJsonlFile: (...args: Parameters<typeof mockWriteJsonlFile>) =>
-    mockWriteJsonlFile(...args),
+  writeJsonlFile: (...arguments_: Parameters<typeof mockWriteJsonlFile>) =>
+    mockWriteJsonlFile(...arguments_),
 }));
-
-const writtenFiles = new Map<string, string>();
-mock.module("../../storage/markdown.ts", () => {
-  const original = require("../../storage/markdown.ts");
-  return {
-    generateMarkdownSummary: original.generateMarkdownSummary,
-  };
-});
 
 beforeEach(() => {
   mockReadFileFromBranch.mockReset();
@@ -68,12 +57,11 @@ beforeEach(() => {
   mockCommitAndPushInbox.mockReset();
   mockCleanupWorktree.mockReset();
   mockWriteJsonlFile.mockReset();
-  writtenFiles.clear();
 
   mockEnsureInboxBranch.mockResolvedValue("/tmp/yamabiko-inbox-test");
   mockCommitAndPushInbox.mockResolvedValue(true);
-  mockCleanupWorktree.mockResolvedValue(undefined);
-  mockWriteJsonlFile.mockResolvedValue(undefined);
+  mockCleanupWorktree.mockResolvedValue();
+  mockWriteJsonlFile.mockResolvedValue();
 });
 
 afterEach(() => {
@@ -101,9 +89,7 @@ describe("inbox resolve", () => {
       status: "fixed",
     });
 
-    expect(result).toBe(
-      "Resolved: github-pull_request_review_comment-100 (claimed → fixed)",
-    );
+    expect(result).toBe("Resolved: github-pull_request_review_comment-100 (claimed → fixed)");
 
     const writtenRecords = mockWriteJsonlFile.mock.calls[0]?.[1] as InboxRecord[];
     expect(writtenRecords).toHaveLength(1);
@@ -127,9 +113,7 @@ describe("inbox resolve", () => {
       status: "skipped",
     });
 
-    expect(result).toBe(
-      "Resolved: github-pull_request_review_comment-200 (claimed → skipped)",
-    );
+    expect(result).toBe("Resolved: github-pull_request_review_comment-200 (claimed → skipped)");
 
     const writtenRecords = mockWriteJsonlFile.mock.calls[0]?.[1] as InboxRecord[];
     expect(writtenRecords).toHaveLength(1);
@@ -187,6 +171,7 @@ describe("inbox resolve", () => {
   });
 
   test("cleans up worktree even on error", async () => {
+    // eslint-disable-next-line unicorn/no-null -- readFileFromBranch returns null for missing files
     mockReadFileFromBranch.mockResolvedValue(null);
 
     await expect(
