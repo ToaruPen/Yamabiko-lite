@@ -36,6 +36,18 @@ jobs:
         shell: bash
         run: git rev-parse --verify "refs/tags/${RELEASE_TAG}"
 
+      - name: Derive floating tags
+        id: semver
+        shell: bash
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Release tag must match v<major>.<minor>.<patch>: $RELEASE_TAG" >&2
+            exit 1
+          fi
+
+          echo "major=v${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          echo "minor=v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}" >> "$GITHUB_OUTPUT"
+
       - name: Run checks
         run: bun run check
 
@@ -56,6 +68,14 @@ jobs:
             fi
           done
           tar -czf "release-artifacts/yamabiko-lite-${RELEASE_TAG}.tar.gz" "$@"
+
+      - name: Update floating action tags
+        shell: bash
+        run: |
+          git tag -f "${{ steps.semver.outputs.major }}" "$RELEASE_TAG"
+          git tag -f "${{ steps.semver.outputs.minor }}" "$RELEASE_TAG"
+          git push origin "refs/tags/${{ steps.semver.outputs.major }}" --force
+          git push origin "refs/tags/${{ steps.semver.outputs.minor }}" --force
 
       - name: Publish GitHub release
         env:
