@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 
-import type {
-  GitHubIssueComment,
-  GitHubReview,
-  GitHubReviewComment,
-} from "../api/github.ts";
+import type { GitHubIssueComment, GitHubReview, GitHubReviewComment } from "../api/github.ts";
 import type { InboxRecord } from "../schema/inbox-record.ts";
 
 import * as githubApi from "../api/github.ts";
@@ -24,43 +20,6 @@ afterEach(() => {
   mock.restore();
 });
 
-function makeReview(overrides: Partial<GitHubReview> = {}): GitHubReview {
-  return {
-    body: "review body",
-    commit_id: "review-commit",
-    html_url: "https://github.com/acme/yamabiko-lite/pull/42#pullrequestreview-1",
-    id: 1,
-    state: "commented",
-    submitted_at: "2026-03-14T00:00:00Z",
-    user: { id: 10, login: "coderabbitai[bot]", type: "Bot" },
-    ...overrides,
-  };
-}
-
-function makeReviewComment(overrides: Partial<GitHubReviewComment> = {}): GitHubReviewComment {
-  return {
-    body: "review comment body",
-    commit_id: "comment-commit",
-    html_url: "https://github.com/acme/yamabiko-lite/pull/42#discussion_r2",
-    id: 2,
-    line: 12,
-    path: "src/index.ts",
-    pull_request_review_id: 1,
-    user: { id: 11, login: "coderabbitai[bot]", type: "Bot" },
-    ...overrides,
-  };
-}
-
-function makeIssueComment(overrides: Partial<GitHubIssueComment> = {}): GitHubIssueComment {
-  return {
-    body: "issue comment body",
-    html_url: "https://github.com/acme/yamabiko-lite/pull/42#issuecomment-3",
-    id: 3,
-    user: { id: 12, login: "coderabbitai[bot]", type: "Bot" },
-    ...overrides,
-  };
-}
-
 function makeExistingRecord(overrides: Partial<InboxRecord> = {}): InboxRecord {
   return {
     body: "old body",
@@ -77,6 +36,43 @@ function makeExistingRecord(overrides: Partial<InboxRecord> = {}): InboxRecord {
     source: "github",
     status: "pending",
     updatedAt: "2026-03-01T00:00:00Z",
+    ...overrides,
+  };
+}
+
+function makeIssueComment(overrides: Partial<GitHubIssueComment> = {}): GitHubIssueComment {
+  return {
+    body: "issue comment body",
+    html_url: "https://github.com/acme/yamabiko-lite/pull/42#issuecomment-3",
+    id: 1,
+    user: { id: 12, login: "coderabbitai[bot]", type: "Bot" },
+    ...overrides,
+  };
+}
+
+function makeReview(overrides: Partial<GitHubReview> = {}): GitHubReview {
+  return {
+    body: "review body",
+    commit_id: "review-commit",
+    html_url: "https://github.com/acme/yamabiko-lite/pull/42#pullrequestreview-1",
+    id: 2,
+    state: "commented",
+    submitted_at: "2026-03-14T00:00:00Z",
+    user: { id: 10, login: "coderabbitai[bot]", type: "Bot" },
+    ...overrides,
+  };
+}
+
+function makeReviewComment(overrides: Partial<GitHubReviewComment> = {}): GitHubReviewComment {
+  return {
+    body: "review comment body",
+    commit_id: "comment-commit",
+    html_url: "https://github.com/acme/yamabiko-lite/pull/42#discussion_r2",
+    id: 3,
+    line: 12,
+    path: "src/index.ts",
+    pull_request_review_id: 1,
+    user: { id: 11, login: "coderabbitai[bot]", type: "Bot" },
     ...overrides,
   };
 }
@@ -182,19 +178,19 @@ describe("reconcilePullRequest", () => {
 
   it("reconciles all event types in one execution", async () => {
     spyOn(githubApi, "fetchPullRequestReviews").mockResolvedValue([
-      makeReview({ id: 41, body: "review A" }),
+      makeReview({ body: "review A", id: 41 }),
     ]);
     spyOn(githubApi, "fetchPullRequestComments").mockResolvedValue([
-      makeReviewComment({ id: 42, body: "comment B", path: "src/reconciler/reconcile.ts" }),
+      makeReviewComment({ body: "comment B", id: 42, path: "src/reconciler/reconcile.ts" }),
     ]);
     spyOn(githubApi, "fetchIssueComments").mockResolvedValue([
-      makeIssueComment({ id: 43, body: "issue C" }),
+      makeIssueComment({ body: "issue C", id: 43 }),
     ]);
 
     const result = await reconcilePullRequest(baseOptions);
 
     expect(result.records).toHaveLength(3);
-    expect(result.records.map((record) => record.eventType).sort()).toEqual([
+    expect(result.records.map((record) => record.eventType).toSorted()).toEqual([
       "issue_comment",
       "pull_request_review",
       "pull_request_review_comment",
