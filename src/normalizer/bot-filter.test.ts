@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { DEFAULT_BOT_ALLOWLIST, isAllowedBot, isBotUser, parseBotAllowlist } from "./bot-filter";
+
 import type { GitHubUser } from "./types";
+
+import { DEFAULT_BOT_ALLOWLIST, isAllowedBot, isBotUser, parseBotAllowlist } from "./bot-filter";
 
 const botUser: GitHubUser = { id: 1, login: "coderabbitai[bot]", type: "Bot" };
 const humanUser: GitHubUser = { id: 2, login: "alice", type: "User" };

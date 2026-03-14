@@ -1,51 +1,53 @@
+/* eslint-disable unicorn/no-null */
 import type { InboxRecord } from "../schema/inbox-record";
-import { generateRecordId } from "../schema/id";
 import type {
   IssueCommentEvent,
   PullRequestReviewCommentEvent,
   PullRequestReviewEvent,
 } from "./types";
 
-function normalizeBody(body: null | string): null | string {
-  if (body === null) return null;
-  return body.trim() === "" ? null : body;
+import { generateRecordId } from "../schema/id";
+
+export function normalizeEvent(
+  eventType: string,
+  payload: unknown,
+  headSha?: string,
+): InboxRecord | null {
+  switch (eventType) {
+    case "issue_comment": {
+      return headSha === undefined
+        ? null
+        : normalizeIssueCommentEvent(payload as IssueCommentEvent, headSha);
+    }
+    case "pull_request_review": {
+      return normalizeReviewEvent(payload as PullRequestReviewEvent);
+    }
+    case "pull_request_review_comment": {
+      return normalizeReviewCommentEvent(payload as PullRequestReviewCommentEvent);
+    }
+    default: {
+      return null;
+    }
+  }
 }
 
-function baseRecord(
-  eventType: InboxRecord["eventType"],
-  sourceId: number,
-): {
-  createdAt: string;
-  id: string;
-  source: "github";
-  status: "pending";
-  updatedAt: string;
-} {
-  const now = new Date().toISOString();
-  return {
-    createdAt: now,
-    id: generateRecordId("github", eventType, sourceId),
-    source: "github",
-    status: "pending",
-    updatedAt: now,
-  };
-}
-
-export function normalizeReviewEvent(event: PullRequestReviewEvent): InboxRecord | null {
-  const body = normalizeBody(event.review.body);
-  if (body === null) return null;
+export function normalizeIssueCommentEvent(
+  event: IssueCommentEvent,
+  headSha: string,
+): InboxRecord | null {
+  const body = normalizeBody(event.comment.body);
+  if (body === null || event.issue.pull_request === undefined) return null;
 
   return {
-    ...baseRecord("pull_request_review", event.review.id),
+    ...baseRecord("issue_comment", event.comment.id),
     body,
-    botLogin: event.review.user.login,
-    commentId: event.review.id,
-    commentUrl: event.review.html_url,
-    eventType: "pull_request_review",
-    headSha: event.pull_request.head.sha,
-    pullRequestNumber: event.pull_request.number,
+    botLogin: event.comment.user.login,
+    commentId: event.comment.id,
+    commentUrl: event.comment.html_url,
+    eventType: "issue_comment",
+    headSha,
+    pullRequestNumber: event.issue.number,
     repository: { name: event.repository.name, owner: event.repository.owner.login },
-    reviewId: event.review.id,
   };
 }
 
@@ -76,41 +78,45 @@ export function normalizeReviewCommentEvent(
   return record;
 }
 
-export function normalizeIssueCommentEvent(
-  event: IssueCommentEvent,
-  headSha: string,
-): InboxRecord | null {
-  const body = normalizeBody(event.comment.body);
-  if (body === null || event.issue.pull_request === undefined) return null;
+export function normalizeReviewEvent(event: PullRequestReviewEvent): InboxRecord | null {
+  const body = normalizeBody(event.review.body);
+  if (body === null) return null;
 
   return {
-    ...baseRecord("issue_comment", event.comment.id),
+    ...baseRecord("pull_request_review", event.review.id),
     body,
-    botLogin: event.comment.user.login,
-    commentId: event.comment.id,
-    commentUrl: event.comment.html_url,
-    eventType: "issue_comment",
-    headSha,
-    pullRequestNumber: event.issue.number,
+    botLogin: event.review.user.login,
+    commentId: event.review.id,
+    commentUrl: event.review.html_url,
+    eventType: "pull_request_review",
+    headSha: event.pull_request.head.sha,
+    pullRequestNumber: event.pull_request.number,
     repository: { name: event.repository.name, owner: event.repository.owner.login },
+    reviewId: event.review.id,
   };
 }
 
-export function normalizeEvent(
-  eventType: string,
-  payload: unknown,
-  headSha?: string,
-): InboxRecord | null {
-  switch (eventType) {
-    case "pull_request_review":
-      return normalizeReviewEvent(payload as PullRequestReviewEvent);
-    case "pull_request_review_comment":
-      return normalizeReviewCommentEvent(payload as PullRequestReviewCommentEvent);
-    case "issue_comment":
-      return headSha === undefined
-        ? null
-        : normalizeIssueCommentEvent(payload as IssueCommentEvent, headSha);
-    default:
-      return null;
-  }
+function baseRecord(
+  eventType: InboxRecord["eventType"],
+  sourceId: number,
+): {
+  createdAt: string;
+  id: string;
+  source: "github";
+  status: "pending";
+  updatedAt: string;
+} {
+  const now = new Date().toISOString();
+  return {
+    createdAt: now,
+    id: generateRecordId("github", eventType, sourceId),
+    source: "github",
+    status: "pending",
+    updatedAt: now,
+  };
+}
+
+function normalizeBody(body: null | string): null | string {
+  if (body === null) return null;
+  return body.trim() === "" ? null : body;
 }

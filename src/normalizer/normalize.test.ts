@@ -1,21 +1,23 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import {
-  normalizeEvent,
-  normalizeIssueCommentEvent,
-  normalizeReviewCommentEvent,
-  normalizeReviewEvent,
-} from "./normalize";
+
 import type {
   IssueCommentEvent,
   PullRequestReviewCommentEvent,
   PullRequestReviewEvent,
 } from "./types";
 
+import {
+  normalizeEvent,
+  normalizeIssueCommentEvent,
+  normalizeReviewCommentEvent,
+  normalizeReviewEvent,
+} from "./normalize";
+
 const providedHeadSha = "9999999999999999999999999999999999999999";
 
 function loadFixture<T>(name: string): T {
-  const fileUrl = new URL(`./__fixtures__/${name}`, import.meta.url);
+  const fileUrl = new URL(`__fixtures__/${name}`, import.meta.url);
   return JSON.parse(readFileSync(fileUrl, "utf8")) as T;
 }
 
@@ -30,17 +32,17 @@ describe("normalizeReviewEvent", () => {
     const record = normalizeReviewEvent(reviewFixture);
 
     expect(record).toMatchObject({
-      id: "github-pull_request_review-710001",
-      source: "github",
-      eventType: "pull_request_review",
-      repository: { owner: "sankenbisha", name: "yamabiko-lite" },
-      pullRequestNumber: 42,
-      commentUrl: "https://github.com/sankenbisha/yamabiko-lite/pull/42#pullrequestreview-710001",
-      commentId: 710001,
-      reviewId: 710001,
-      botLogin: "coderabbitai[bot]",
       body: "Please simplify this branch and avoid duplicate parsing.",
+      botLogin: "coderabbitai[bot]",
+      commentId: 710_001,
+      commentUrl: "https://github.com/sankenbisha/yamabiko-lite/pull/42#pullrequestreview-710001",
+      eventType: "pull_request_review",
       headSha: "2222222222222222222222222222222222222222",
+      id: "github-pull_request_review-710001",
+      pullRequestNumber: 42,
+      repository: { name: "yamabiko-lite", owner: "sankenbisha" },
+      reviewId: 710_001,
+      source: "github",
       status: "pending",
     });
   });
@@ -58,19 +60,19 @@ describe("normalizeReviewCommentEvent", () => {
     const record = normalizeReviewCommentEvent(reviewCommentFixture);
 
     expect(record).toMatchObject({
-      id: "github-pull_request_review_comment-820002",
-      source: "github",
-      eventType: "pull_request_review_comment",
-      repository: { owner: "sankenbisha", name: "yamabiko-lite" },
-      pullRequestNumber: 42,
-      commentUrl: "https://github.com/sankenbisha/yamabiko-lite/pull/42#discussion_r820002",
-      commentId: 820002,
-      reviewId: 710001,
-      botLogin: "coderabbitai[bot]",
       body: "Inline: this branch is duplicated and can be flattened.",
-      path: "src/cli/check-inbox.ts",
-      line: 120,
+      botLogin: "coderabbitai[bot]",
+      commentId: 820_002,
+      commentUrl: "https://github.com/sankenbisha/yamabiko-lite/pull/42#discussion_r820002",
+      eventType: "pull_request_review_comment",
       headSha: "4444444444444444444444444444444444444444",
+      id: "github-pull_request_review_comment-820002",
+      line: 120,
+      path: "src/cli/check-inbox.ts",
+      pullRequestNumber: 42,
+      repository: { name: "yamabiko-lite", owner: "sankenbisha" },
+      reviewId: 710_001,
+      source: "github",
       status: "pending",
     });
   });
@@ -81,16 +83,16 @@ describe("normalizeIssueCommentEvent", () => {
     const record = normalizeIssueCommentEvent(issueCommentFixture, providedHeadSha);
 
     expect(record).toMatchObject({
-      id: "github-issue_comment-830003",
-      source: "github",
-      eventType: "issue_comment",
-      repository: { owner: "sankenbisha", name: "yamabiko-lite" },
-      pullRequestNumber: 42,
-      commentUrl: "https://github.com/sankenbisha/yamabiko-lite/pull/42#issuecomment-830003",
-      commentId: 830003,
-      botLogin: "coderabbitai[bot]",
       body: "General PR note: simplify this conditional and add coverage.",
+      botLogin: "coderabbitai[bot]",
+      commentId: 830_003,
+      commentUrl: "https://github.com/sankenbisha/yamabiko-lite/pull/42#issuecomment-830003",
+      eventType: "issue_comment",
       headSha: providedHeadSha,
+      id: "github-issue_comment-830003",
+      pullRequestNumber: 42,
+      repository: { name: "yamabiko-lite", owner: "sankenbisha" },
+      source: "github",
       status: "pending",
     });
   });
@@ -99,6 +101,7 @@ describe("normalizeIssueCommentEvent", () => {
 describe("normalizeEvent", () => {
   it("returns null for empty or null body", () => {
     const nullBodyReview = structuredClone(reviewFixture);
+    // eslint-disable-next-line unicorn/no-null
     nullBodyReview.review.body = null;
 
     const emptyBodyIssueComment = structuredClone(issueCommentFixture);
