@@ -84,7 +84,7 @@ jobs:
       group: inbox-write-${{ github.repository }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ToaruPen/Yamabiko-lite@v0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -99,7 +99,7 @@ Choose the version channel that matches your rollout policy:
   recommended default for most adopters.
 - `@v0.1` - automatic patch upgrades within the `v0.1.y` line. Use this when
   you want smaller automatic updates without fully pinning.
-- `@v0.1.2` - exact release pin. Use this when you want to control when
+- `@v0.1.4` - exact release pin. Use this when you want to control when
   upgrades happen.
 - `@<commit-sha>` - maximum auditability. Use this when your organization
   requires immutable references.
