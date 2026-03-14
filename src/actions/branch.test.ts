@@ -6,6 +6,7 @@ import {
   ensureInboxBranch,
   fetchInboxBranch,
   readFileFromBranch,
+  resolveInboxPathsInBranch,
 } from "./branch.ts";
 
 function createMockSubprocess(standardOutput: string, exitCode: number, standardError = "") {
@@ -74,6 +75,42 @@ describe("readFileFromBranch", () => {
 
     const result = await readFileFromBranch("yamabiko-lite-inbox", "data.jsonl");
     expect(result).toBeNull();
+
+    spawnMock.mockRestore();
+  });
+});
+
+describe("resolveInboxPathsInBranch", () => {
+  it("returns canonical paths when no legacy path exists", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("", 0) as any,
+    );
+
+    const result = await resolveInboxPathsInBranch("inbox", "owner", "repo", 42);
+
+    expect(result).toEqual({
+      jsonlPath: ".yamabiko-lite/inbox/owner/repo/pr-42.jsonl",
+      mdPath: ".yamabiko-lite/inbox/owner/repo/pr-42.md",
+    });
+
+    spawnMock.mockRestore();
+  });
+
+  it("reuses legacy mixed-case paths when they already exist", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () =>
+        createMockSubprocess(
+          ".yamabiko-lite/inbox/Owner/Repo/pr-42.jsonl\n.yamabiko-lite/inbox/Owner/Repo/pr-42.md\n",
+          0,
+        ) as any,
+    );
+
+    const result = await resolveInboxPathsInBranch("inbox", "owner", "repo", 42);
+
+    expect(result).toEqual({
+      jsonlPath: ".yamabiko-lite/inbox/Owner/Repo/pr-42.jsonl",
+      mdPath: ".yamabiko-lite/inbox/Owner/Repo/pr-42.md",
+    });
 
     spawnMock.mockRestore();
   });
