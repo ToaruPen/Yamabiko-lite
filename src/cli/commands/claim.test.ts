@@ -10,6 +10,7 @@ const mockCommitAndPushInbox =
 const mockCleanupWorktree = mock<(worktreePath: string) => Promise<void>>();
 const mockWriteJsonlFile =
   mock<(filePath: string, records: readonly InboxRecord[]) => Promise<void>>();
+const mockWithInboxMutationLock = mock(<T>(_: unknown, operation: () => Promise<T>) => operation());
 
 mock.module("../../actions/branch.ts", () => ({
   cleanupWorktree: (...arguments_: Parameters<typeof mockCleanupWorktree>) =>
@@ -25,6 +26,11 @@ mock.module("../../actions/branch.ts", () => ({
 mock.module("../../storage/jsonl.ts", () => ({
   writeJsonlFile: (...arguments_: Parameters<typeof mockWriteJsonlFile>) =>
     mockWriteJsonlFile(...arguments_),
+}));
+
+mock.module("../inbox-lock.ts", () => ({
+  withInboxMutationLock: (...arguments_: Parameters<typeof mockWithInboxMutationLock>) =>
+    mockWithInboxMutationLock(...arguments_),
 }));
 
 import { applyClaimToRecords, runClaim } from "./claim.ts";
@@ -57,11 +63,15 @@ beforeEach(() => {
   mockCommitAndPushInbox.mockReset();
   mockCleanupWorktree.mockReset();
   mockWriteJsonlFile.mockReset();
+  mockWithInboxMutationLock.mockReset();
 
   mockEnsureInboxBranch.mockResolvedValue("/tmp/yamabiko-inbox-test");
   mockCommitAndPushInbox.mockResolvedValue(true);
   mockCleanupWorktree.mockResolvedValue();
   mockWriteJsonlFile.mockResolvedValue();
+  mockWithInboxMutationLock.mockImplementation(<T>(_: unknown, operation: () => Promise<T>) =>
+    operation(),
+  );
 
   bunWriteMock = spyOn(Bun, "write").mockResolvedValue(0);
   logMock = spyOn(console, "log").mockImplementation(() => void 0);
@@ -73,6 +83,7 @@ afterEach(() => {
   mockCommitAndPushInbox.mockReset();
   mockCleanupWorktree.mockReset();
   mockWriteJsonlFile.mockReset();
+  mockWithInboxMutationLock.mockReset();
   bunWriteMock.mockRestore();
   logMock.mockRestore();
 });
@@ -141,6 +152,52 @@ describe("runClaim", () => {
       "claim: rec-123",
     );
     expect(mockCleanupWorktree).toHaveBeenCalledWith("/tmp/yamabiko-inbox-test");
+  });
+
+  it("normalizes mixed-case repo input before locking and writing", async () => {
+    const record = makeRecord({ id: "rec-123", status: "pending" });
+    mockReadFileFromBranch.mockResolvedValue(JSON.stringify(record));
+
+    await runClaim({
+      branch: "yamabiko-lite-inbox",
+      id: "rec-123",
+      pr: "1",
+      repo: "Owner/Repo",
+    });
+
+    expect(mockWithInboxMutationLock).toHaveBeenCalledWith(
+      {
+        branch: "yamabiko-lite-inbox",
+        owner: "owner",
+        prNumber: 1,
+        repo: "repo",
+      },
+      expect.any(Function),
+    );
+    expect(mockWriteJsonlFile.mock.calls[0]?.[0]).toBe(
+      "/tmp/yamabiko-inbox-test/.yamabiko-lite/inbox/owner/repo/pr-1.jsonl",
+    );
+  });
+
+  it("surfaces lock contention before mutating the inbox", async () => {
+    mockWithInboxMutationLock.mockRejectedValue(
+      new Error(
+        "Inbox mutation lock already held for owner/repo PR #1 on branch yamabiko-lite-inbox.",
+      ),
+    );
+
+    await expect(
+      runClaim({
+        branch: "yamabiko-lite-inbox",
+        id: "rec-123",
+        pr: "1",
+        repo: "owner/repo",
+      }),
+    ).rejects.toThrow(
+      "Inbox mutation lock already held for owner/repo PR #1 on branch yamabiko-lite-inbox.",
+    );
+
+    expect(mockEnsureInboxBranch).not.toHaveBeenCalled();
   });
 
   it("cleans up worktree when claim fails", async () => {
