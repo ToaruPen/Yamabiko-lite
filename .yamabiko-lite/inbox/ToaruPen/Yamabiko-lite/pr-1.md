@@ -1,6 +1,6 @@
 # Inbox Summary: ToaruPen/Yamabiko-lite PR #1
 
-**12** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
+**13** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
@@ -54,3 +54,10 @@ Line 18 は空エント... | [comment](https://github.com/ToaruPen/Yamabiko-lite
 **upsert時に位置情報メタデータが更新されず古いまま残ります**
 
 Line 18-... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934798405) |
+| pending | github-pull_request_review-3948253998 | coderabbitai[bot] |  | 
+
+<details>
+<summary>🧹 Nitpick comments (1)</summary><blockquote>
+
+<details>
+<s... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948253998) |
