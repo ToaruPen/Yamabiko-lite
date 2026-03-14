@@ -1,8 +1,6 @@
-import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 
 import type { InboxRecord } from "../../schema/inbox-record.ts";
-
-import { listInboxItems, readInboxFromBranch } from "./list.ts";
 
 function buildJsonl(records: InboxRecord[]): string {
   return records.map((r) => JSON.stringify(r)).join("\n") + "\n";
@@ -39,15 +37,30 @@ function makeRecord(overrides: Partial<InboxRecord> = {}): InboxRecord {
   };
 }
 
+// Mock branch module to prevent cross-test contamination from claim.test.ts
+// eslint-disable-next-line unicorn/no-null -- readFileFromBranch API contract returns null
+const mockReadFileFromBranch = mock(() => Promise.resolve(null as null | string));
+
+mock.module("../../actions/branch.ts", () => ({
+  cleanupWorktree: mock(() => Promise.resolve()),
+  commitAndPushInbox: mock(() => Promise.resolve(true)),
+  ensureInboxBranch: mock(() => Promise.resolve("/tmp/fake")),
+  readFileFromBranch: mockReadFileFromBranch,
+}));
+
+import { listInboxItems, readInboxFromBranch } from "./list.ts";
+
 describe("readInboxFromBranch", () => {
+  afterEach(() => {
+    mockReadFileFromBranch.mockReset();
+  });
+
   it("reads and parses records from the inbox branch", async () => {
     const records = [
       makeRecord({ commentId: 1, id: "rec-1" }),
       makeRecord({ commentId: 2, id: "rec-2" }),
     ];
-    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
-      () => createMockSubprocess(buildJsonl(records), 0) as any,
-    );
+    mockReadFileFromBranch.mockImplementation(() => Promise.resolve(buildJsonl(records).trim()));
 
     const result = await readInboxFromBranch("yamabiko-lite-inbox", "OWNER/REPO", 42);
 
@@ -55,25 +68,19 @@ describe("readInboxFromBranch", () => {
     expect(result[0]?.id).toBe("rec-1");
     expect(result[1]?.id).toBe("rec-2");
 
-    const callArguments = spawnMock.mock.calls[0]![0] as string[];
-    expect(callArguments).toContain("show");
-    expect(
-      callArguments.some((a) => a.includes(".yamabiko-lite/inbox/OWNER/REPO/pr-42.jsonl")),
-    ).toBe(true);
-
-    spawnMock.mockRestore();
+    expect(mockReadFileFromBranch).toHaveBeenCalledWith(
+      "yamabiko-lite-inbox",
+      ".yamabiko-lite/inbox/OWNER/REPO/pr-42.jsonl",
+    );
   });
 
   it("returns empty array when JSONL file does not exist", async () => {
-    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
-      () => createMockSubprocess("", 128) as any,
-    );
+    // eslint-disable-next-line unicorn/no-null -- matching readFileFromBranch API
+    mockReadFileFromBranch.mockImplementation(() => Promise.resolve(null));
 
     const result = await readInboxFromBranch("yamabiko-lite-inbox", "OWNER/REPO", 42);
 
     expect(result).toEqual([]);
-
-    spawnMock.mockRestore();
   });
 });
 
@@ -84,6 +91,7 @@ describe("listInboxItems", () => {
   afterEach(() => {
     logMock?.mockRestore();
     spawnMock?.mockRestore();
+    mockReadFileFromBranch.mockReset();
   });
 
   it("shows 2 pending from 3 records (2 pending, 1 fixed)", async () => {
@@ -94,12 +102,10 @@ describe("listInboxItems", () => {
       makeRecord({ commentId: 3, headSha, id: "rec-3", status: "fixed" }),
     ];
 
-    spawnMock = spyOn(Bun, "spawn").mockImplementation((arguments_: any) => {
-      if (arguments_.includes("rev-parse")) {
-        return createMockSubprocess(headSha + "\n", 0) as any;
-      }
-      return createMockSubprocess(buildJsonl(records), 0) as any;
-    });
+    mockReadFileFromBranch.mockImplementation(() => Promise.resolve(buildJsonl(records).trim()));
+    spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess(headSha + "\n", 0) as any,
+    );
     logMock = spyOn(console, "log").mockImplementation(() => void 0);
 
     await listInboxItems({
@@ -125,12 +131,10 @@ describe("listInboxItems", () => {
       makeRecord({ commentId: 2, headSha, id: "json-2" }),
     ];
 
-    spawnMock = spyOn(Bun, "spawn").mockImplementation((arguments_: any) => {
-      if (arguments_.includes("rev-parse")) {
-        return createMockSubprocess(headSha + "\n", 0) as any;
-      }
-      return createMockSubprocess(buildJsonl(records), 0) as any;
-    });
+    mockReadFileFromBranch.mockImplementation(() => Promise.resolve(buildJsonl(records).trim()));
+    spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess(headSha + "\n", 0) as any,
+    );
     logMock = spyOn(console, "log").mockImplementation(() => void 0);
 
     await listInboxItems({
@@ -156,12 +160,10 @@ describe("listInboxItems", () => {
       makeRecord({ commentId: 3, headSha: "old-sha", id: "stale-sha", status: "pending" }),
     ];
 
-    spawnMock = spyOn(Bun, "spawn").mockImplementation((arguments_: any) => {
-      if (arguments_.includes("rev-parse")) {
-        return createMockSubprocess(currentSha + "\n", 0) as any;
-      }
-      return createMockSubprocess(buildJsonl(records), 0) as any;
-    });
+    mockReadFileFromBranch.mockImplementation(() => Promise.resolve(buildJsonl(records).trim()));
+    spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess(currentSha + "\n", 0) as any,
+    );
     logMock = spyOn(console, "log").mockImplementation(() => void 0);
 
     await listInboxItems({
@@ -186,12 +188,10 @@ describe("listInboxItems", () => {
       makeRecord({ commentId: 3, headSha: "old-sha", id: "stale-sha", status: "pending" }),
     ];
 
-    spawnMock = spyOn(Bun, "spawn").mockImplementation((arguments_: any) => {
-      if (arguments_.includes("rev-parse")) {
-        return createMockSubprocess(currentSha + "\n", 0) as any;
-      }
-      return createMockSubprocess(buildJsonl(records), 0) as any;
-    });
+    mockReadFileFromBranch.mockImplementation(() => Promise.resolve(buildJsonl(records).trim()));
+    spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess(currentSha + "\n", 0) as any,
+    );
     logMock = spyOn(console, "log").mockImplementation(() => void 0);
 
     await listInboxItems({
@@ -208,12 +208,11 @@ describe("listInboxItems", () => {
   });
 
   it("shows 'No pending inbox items' when no records match", async () => {
-    spawnMock = spyOn(Bun, "spawn").mockImplementation((arguments_: any) => {
-      if (arguments_.includes("rev-parse")) {
-        return createMockSubprocess("current-sha\n", 0) as any;
-      }
-      return createMockSubprocess("", 128) as any;
-    });
+    // eslint-disable-next-line unicorn/no-null -- matching readFileFromBranch API
+    mockReadFileFromBranch.mockImplementation(() => Promise.resolve(null));
+    spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("current-sha\n", 0) as any,
+    );
     logMock = spyOn(console, "log").mockImplementation(() => void 0);
 
     await listInboxItems({

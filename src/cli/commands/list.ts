@@ -22,13 +22,13 @@ export async function listInboxItems(options: ListOptions): Promise<void> {
     ? records
     : records.filter((r) => r.status !== "stale" && r.headSha === headSha);
 
-  if (filtered.length === 0) {
-    console.log(`No pending inbox items for PR #${String(options.pr)}`);
+  if (options.json) {
+    console.log(JSON.stringify(filtered, undefined, 2));
     return;
   }
 
-  if (options.json) {
-    console.log(JSON.stringify(filtered, undefined, 2));
+  if (filtered.length === 0) {
+    console.log(`No pending inbox items for PR #${String(options.pr)}`);
     return;
   }
 
