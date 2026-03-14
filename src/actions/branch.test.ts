@@ -4,6 +4,7 @@ import {
   cleanupWorktree,
   commitAndPushInbox,
   ensureInboxBranch,
+  fetchInboxBranch,
   readFileFromBranch,
 } from "./branch.ts";
 
@@ -338,6 +339,31 @@ describe("ensureInboxBranch", () => {
 
     await expect(ensureInboxBranch("yamabiko/inbox")).rejects.toThrow(
       "git worktree add --orphan failed (exit 1): fatal: orphan creation failed",
+    );
+
+    spawnMock.mockRestore();
+  });
+});
+
+describe("fetchInboxBranch", () => {
+  it("ignores missing remote branch fetch failures", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () =>
+        createMockSubprocess("", 128, "fatal: couldn't find remote ref refs/heads/inbox") as any,
+    );
+
+    await expect(fetchInboxBranch("inbox")).resolves.toBeUndefined();
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws when fetch fails for reasons other than missing branch", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("", 128, "fatal: unable to access remote") as any,
+    );
+
+    await expect(fetchInboxBranch("inbox")).rejects.toThrow(
+      "git fetch failed (exit 128): fatal: unable to access remote",
     );
 
     spawnMock.mockRestore();

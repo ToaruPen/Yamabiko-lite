@@ -94,8 +94,13 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
 }
 
 export async function fetchInboxBranch(branchName: string): Promise<void> {
-  // Silently ignore failures — branch may not exist on remote yet
-  await runGit(["fetch", "origin", `+${branchName}:${branchName}`]);
+  const { exitCode, stderr } = await runGit(["fetch", "origin", `+${branchName}:${branchName}`]);
+
+  if (exitCode === 0 || isMissingRemoteBranchError(exitCode, stderr)) {
+    return;
+  }
+
+  throw new Error(`git fetch failed (exit ${String(exitCode)}): ${stderr}`);
 }
 
 export async function readFileFromBranch(
@@ -155,6 +160,18 @@ async function fetchBranch(branchName: string): Promise<void> {
   if (exitCode !== 0) {
     throw new Error(`git fetch failed (exit ${String(exitCode)}): ${stderr}`);
   }
+}
+
+function isMissingRemoteBranchError(exitCode: number, stderr: string): boolean {
+  if (exitCode !== 1 && exitCode !== 128) {
+    return false;
+  }
+
+  return (
+    stderr.includes("couldn't find remote ref") ||
+    stderr.includes("no such ref was fetched") ||
+    stderr.includes("remote ref does not exist")
+  );
 }
 
 async function localBranchExists(branchName: string): Promise<boolean> {
