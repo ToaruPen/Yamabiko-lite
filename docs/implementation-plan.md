@@ -22,6 +22,27 @@ The system should make the following workflow routine:
 6. The session fixes or consciously skips each item.
 7. The session pushes changes and requests review again.
 
+## Current Status
+
+The original V1 implementation is complete on `main`.
+
+Implemented today:
+
+- review-event ingestion workflow
+- dedicated inbox branch storage
+- JSONL plus Markdown durable artifacts
+- local CLI read, claim, and resolve flow
+- strict validation, reconciliation, and retry behavior
+
+The main remaining gap is adoption. The system works inside this repository,
+but other repositories still need a clean installation path.
+
+The next phase therefore focuses on distribution and operator ergonomics:
+
+- expose ingestion as a reusable GitHub Action
+- document installation in existing repositories
+- define the first `/check-inbox` skill contract over the local CLI
+
 ## V1 Scope
 
 ### In Scope
@@ -237,6 +258,21 @@ Minimum expected permissions:
 Fork PR support should be treated as a separate phase because token permissions
 and trust boundaries are stricter there.
 
+### Reusable Action Track
+
+Post-V1, the ingestion workflow should also be packaged as a reusable GitHub
+Action so target repositories can depend on Yamabiko-lite with:
+
+- `actions/checkout` in the caller workflow
+- `uses: ToaruPen/Yamabiko-lite@...`
+- configurable allowlist and inbox branch inputs
+
+This distribution track must preserve the existing operating model:
+
+- the action only writes inbox artifacts
+- the caller repository remains the git working tree
+- the authoring agent still performs code fixes in its original context
+
 ## CLI and Skill Contract
 
 V1 should provide a local command surface such as:
@@ -289,6 +325,14 @@ The `/check-inbox` skill should:
 - skip rationale capture
 - cycle grouping across review rounds
 - inbox analytics
+
+### Phase 6: Distribution and adoption
+
+- add a root `action.yml` reusable action wrapper
+- move this repository's own review-ingest workflow to use that action
+- support env/input-driven inbox branch selection
+- document installation in existing repositories
+- define the first `/check-inbox` skill contract over the local CLI
 
 ## Success Criteria
 

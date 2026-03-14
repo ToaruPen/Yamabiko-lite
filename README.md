@@ -40,14 +40,63 @@ Yamabiko-lite optimizes for the opposite workflow:
 - Optimize for low quota and low latency in day-to-day development
 - Reserve human attention for specification decisions and merge decisions
 
-## Planned V1
+## Current Status
 
-- GitHub Actions workflow for review-event ingestion
-- Dedicated inbox branch in the target repository
-- JSONL inbox records plus a human-readable Markdown summary per PR
-- Local CLI helpers for listing and resolving inbox items
-- A `/check-inbox` skill contract for Codex-driven remediation
-- Authoring-agent execution from inbox item to test, commit, and push
+V1 is implemented and merged on `main`.
+
+- GitHub Actions review-event ingestion is implemented
+- Dedicated inbox branch storage is implemented
+- JSONL records plus Markdown summaries are implemented
+- Local CLI commands (`inbox list`, `claim`, `resolve`) are implemented
+- Strict validation, retry, stale-head filtering, and integrity guards are in place
+
+The remaining gap is distribution: making the ingestion workflow easy to adopt
+from other repositories without copying this repository's source tree by hand.
+
+## Use In Another Repository
+
+The current adoption path is a reusable GitHub Action.
+
+Add a workflow like this to the target repository:
+
+```yaml
+name: Review Event Ingestion
+
+on:
+  pull_request_review:
+    types: [submitted, dismissed]
+  pull_request_review_comment:
+    types: [created, edited]
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    if: github.event.sender.type == 'Bot' && (github.event_name != 'issue_comment' || github.event.issue.pull_request != null)
+    permissions:
+      contents: write
+      issues: read
+      pull-requests: read
+    concurrency:
+      group: inbox-write-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ToaruPen/Yamabiko-lite@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          bot-allowlist: coderabbitai[bot],github-copilot[bot]
+          inbox-branch: yamabiko-lite-inbox
+```
+
+Notes:
+
+- `actions/checkout` is required before the action runs because Yamabiko-lite
+  operates on the caller repository worktree.
+- The action writes only to the inbox branch; it never mutates the PR branch.
+- The CLI remains local-first. The reusable action solves ingestion and storage,
+  not autonomous fixing.
 
 ## Non-Goals For V1
 
@@ -68,11 +117,18 @@ Yamabiko-lite optimizes for the opposite workflow:
 ```text
 AGENTS.md
 README.md
+action.yml
+src/
+.github/workflows/
 docs/
   implementation-plan.md
 ```
 
-## Status
+## Next Phase
 
-This repository currently defines the product scope and implementation plan.
-Code comes next.
+The next phase is adoption hardening:
+
+- expose the ingestion flow as a reusable action
+- document installation in existing repositories
+- add the `/check-inbox` skill contract that drives the local CLI
+- revisit CLI packaging after the reusable-action path is stable
