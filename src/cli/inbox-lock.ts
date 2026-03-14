@@ -8,6 +8,7 @@ interface InboxLockDeps {
   getPid?: () => number;
   isProcessAlive?: (pid: number) => boolean;
   logWarning?: (message: string) => void;
+  sleep?: (milliseconds: number) => Promise<void>;
 }
 
 interface InboxMutationTarget {
@@ -24,6 +25,7 @@ interface LockMetadata {
 }
 
 const LOCK_ACQUIRE_ATTEMPTS = 3;
+const LOCK_RETRY_DELAY_MS = 10;
 
 export async function withInboxMutationLock<T>(
   target: InboxMutationTarget,
@@ -39,6 +41,7 @@ export async function withInboxMutationLock<T>(
     ((message: string): void => {
       console.error(message);
     });
+  const sleep = deps.sleep ?? defaultSleep;
   const lockDirectory = path.join(gitCommonDirectory, "yamabiko-lite", "locks");
   const lockPath = path.join(lockDirectory, buildLockFileName(target));
   const metadata: LockMetadata = {
@@ -49,7 +52,13 @@ export async function withInboxMutationLock<T>(
 
   await mkdir(lockDirectory, { recursive: true });
 
-  const lockHandle = await acquireInboxMutationLock(lockPath, metadata, target, isProcessAlive);
+  const lockHandle = await acquireInboxMutationLock(
+    lockPath,
+    metadata,
+    target,
+    isProcessAlive,
+    sleep,
+  );
 
   let operationError: unknown;
 
@@ -68,6 +77,7 @@ async function acquireInboxMutationLock(
   metadata: LockMetadata,
   target: InboxMutationTarget,
   isProcessAlive: (pid: number) => boolean,
+  sleep: (milliseconds: number) => Promise<void>,
 ): Promise<Awaited<ReturnType<typeof open>>> {
   for (let attempt = 0; attempt < LOCK_ACQUIRE_ATTEMPTS; attempt++) {
     try {
@@ -83,6 +93,8 @@ async function acquireInboxMutationLock(
       if (recoveryOutcome === "retry") {
         continue;
       }
+
+      await sleep(LOCK_RETRY_DELAY_MS);
     }
   }
 
@@ -118,6 +130,10 @@ function defaultIsProcessAlive(pid: number): boolean {
   } catch (error) {
     return !(error instanceof Error && "code" in error && error.code === "ESRCH");
   }
+}
+
+async function defaultSleep(milliseconds: number): Promise<void> {
+  await Bun.sleep(milliseconds);
 }
 
 async function getGitCommonDirectory(): Promise<string> {
@@ -174,8 +190,7 @@ async function recoverInboxMutationLock(
 ): Promise<"held" | "retry"> {
   const existingMetadata = await readLockMetadata(lockPath);
   if (existingMetadata === undefined) {
-    await removeLockFileIfPresent(lockPath);
-    return "retry";
+    return "held";
   }
 
   if (existingMetadata.hostname !== metadata.hostname) {
@@ -210,14 +225,5 @@ async function releaseInboxMutationLock(
     }
   } catch (error) {
     logWarning(buildLockCleanupWarning("remove", error, operationError));
-  }
-}
-
-async function removeLockFileIfPresent(lockPath: string): Promise<boolean> {
-  try {
-    await rm(lockPath, { force: true });
-    return true;
-  } catch {
-    return false;
   }
 }

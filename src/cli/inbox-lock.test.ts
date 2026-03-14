@@ -173,6 +173,38 @@ describe("withInboxMutationLock", () => {
     expect(lockStats.isFile()).toBe(true);
   });
 
+  it("treats unreadable lock metadata as temporarily held", async () => {
+    const sleeps: number[] = [];
+    const lockDirectory = path.join(rootDirectory, "yamabiko-lite", "locks");
+    const lockPath = path.join(lockDirectory, "yamabiko-lite-inbox--owner--repo--pr-1.lock");
+
+    await mkdir(lockDirectory, { recursive: true });
+    await writeFile(lockPath, "{");
+
+    await expect(
+      withInboxMutationLock(
+        {
+          branch: "yamabiko-lite-inbox",
+          owner: "owner",
+          prNumber: 1,
+          repo: "repo",
+        },
+        async () => "recovered",
+        {
+          getGitCommonDirectory: async () => rootDirectory,
+          sleep: async (milliseconds) => {
+            sleeps.push(milliseconds);
+          },
+        },
+      ),
+    ).rejects.toThrow(
+      "Inbox mutation lock already held for owner/repo PR #1 on branch yamabiko-lite-inbox.",
+    );
+
+    expect(sleeps).toHaveLength(3);
+    expect(await Bun.file(lockPath).text()).toBe("{");
+  });
+
   it("does not remove a lock held by another host", async () => {
     const lockDirectory = path.join(rootDirectory, "yamabiko-lite", "locks");
     const lockPath = path.join(lockDirectory, "yamabiko-lite-inbox--owner--repo--pr-1.lock");
