@@ -32,6 +32,7 @@ Implemented today:
 - dedicated inbox branch storage
 - JSONL plus Markdown durable artifacts
 - local CLI read, claim, and resolve flow
+- first repo-local `/check-inbox` command skill
 - strict validation, reconciliation, and retry behavior
 
 The main remaining gap is adoption. The system works inside this repository,
@@ -292,6 +293,11 @@ The `/check-inbox` skill should:
 6. fix, test, commit, and push when the item is safely actionable
 7. mark items as resolved after the session acts
 
+The first repository-local implementation now lives at:
+
+- `.claude/commands/check-inbox/SKILL.md`
+- `docs/skills/check-inbox.md`
+
 ## Suggested Implementation Order
 
 ### Phase 1: Documentation and schema
@@ -332,7 +338,7 @@ The `/check-inbox` skill should:
 - move this repository's own review-ingest workflow to use that action
 - support env/input-driven inbox branch selection
 - document installation in existing repositories
-- define the first `/check-inbox` skill contract over the local CLI
+- package or distribute the `/check-inbox` skill beyond this repository
 
 ## Success Criteria
 

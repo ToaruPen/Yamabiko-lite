@@ -48,6 +48,7 @@ V1 is implemented and merged on `main`.
 - Dedicated inbox branch storage is implemented
 - JSONL records plus Markdown summaries are implemented
 - Local CLI commands (`inbox list`, `claim`, `resolve`) are implemented
+- A repo-local `/check-inbox` command skill is implemented
 - Strict validation, retry, stale-head filtering, and integrity guards are in place
 
 The remaining gap is distribution: making the ingestion workflow easy to adopt
@@ -118,9 +119,11 @@ Notes:
 AGENTS.md
 README.md
 action.yml
+.claude/commands/check-inbox/SKILL.md
 src/
 .github/workflows/
 docs/
+  skills/check-inbox.md
   implementation-plan.md
 ```
 
@@ -130,5 +133,5 @@ The next phase is adoption hardening:
 
 - expose the ingestion flow as a reusable action
 - document installation in existing repositories
-- add the `/check-inbox` skill contract that drives the local CLI
+- package or distribute the `/check-inbox` skill beyond this repository
 - revisit CLI packaging after the reusable-action path is stable
