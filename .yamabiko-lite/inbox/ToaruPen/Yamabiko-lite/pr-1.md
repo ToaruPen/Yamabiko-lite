@@ -1,6 +1,6 @@
 # Inbox Summary: ToaruPen/Yamabiko-lite PR #1
 
-**21** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
+**23** pending, **0** claimed, **0** fixed, **0** skipped, **0** stale
 
 | Status | ID | Bot | File:Line | Summary | Link |
 | --- | --- | --- | --- | --- | --- |
@@ -25,3 +25,5 @@
 | pending | github-pull_request_review_comment-2934832559 | coderabbitai[bot] | src/actions/branch.ts:81 | _⚠️ Potential issue_ \| _🟡 Minor_  **フォーマッタ不一致で CI が落ちています**  Pipeline failure の... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934832559) |
 | pending | github-pull_request_review_comment-2934832560 | coderabbitai[bot] | src/api/github.ts:71 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934832560) |
 | pending | github-pull_request_review_comment-2934832562 | coderabbitai[bot] | src/reconciler/reconcile.ts:90 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934832562) |
+| pending | github-pull_request_review-3948306394 | coderabbitai[bot] |  | **Actionable comments posted: 1**  <details> <summary>♻️ Duplicate comments (3)<... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#pullrequestreview-3948306394) |
+| pending | github-pull_request_review_comment-2934840940 | coderabbitai[bot] | src/actions/branch.ts:11 | _⚠️ Potential issue_ \| _🟠 Major_  <details> <summary>🧩 Analysis chain</summary... | [comment](https://github.com/ToaruPen/Yamabiko-lite/pull/1#discussion_r2934840940) |
