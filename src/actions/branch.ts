@@ -77,6 +77,8 @@ export async function ensureInboxBranch(branchName: string): Promise<string> {
   const suffix = `${String(Date.now())}-${Math.random().toString(36).slice(2, 10)}`;
   const worktreePath = path.join(tmpdir(), `yamabiko-inbox-${suffix}`);
 
+  await pruneStaleWorktrees();
+
   const remoteExists = await remoteBranchExists(branchName);
 
   if (remoteExists) {
@@ -192,6 +194,14 @@ function isMissingRemoteBranchError(exitCode: number, stderr: string): boolean {
 async function localBranchExists(branchName: string): Promise<boolean> {
   const { exitCode } = await runGit(["rev-parse", "--verify", `refs/heads/${branchName}`]);
   return exitCode === 0;
+}
+
+async function pruneStaleWorktrees(): Promise<void> {
+  const { exitCode, stderr } = await runGit(["worktree", "prune", "--expire", "now"]);
+
+  if (exitCode !== 0) {
+    throw new Error(`git worktree prune failed (exit ${String(exitCode)}): ${stderr}`);
+  }
 }
 
 async function remoteBranchExists(branchName: string): Promise<boolean> {

@@ -261,6 +261,37 @@ describe("ensureInboxBranch", () => {
     spawnMock.mockRestore();
   });
 
+  it("prunes stale worktree metadata before creating a new inbox worktree", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("ls-remote")) {
+        return createMockSubprocess("abc123\trefs/heads/yamabiko/inbox\n", 0) as any;
+      }
+
+      return createMockSubprocess("", 0) as any;
+    });
+
+    await ensureInboxBranch("yamabiko/inbox");
+
+    const commandCalls = spawnMock.mock.calls.map(
+      (callArguments: any) => callArguments[0] as string[],
+    );
+    const pruneCallIndex = commandCalls.findIndex(
+      (commandArguments) =>
+        commandArguments.includes("worktree") && commandArguments.includes("prune"),
+    );
+    const addCallIndex = commandCalls.findIndex(
+      (commandArguments) =>
+        commandArguments.includes("worktree") &&
+        commandArguments.includes("add") &&
+        !commandArguments.includes("--orphan"),
+    );
+
+    expect(pruneCallIndex).toBeGreaterThanOrEqual(0);
+    expect(addCallIndex).toBeGreaterThan(pruneCallIndex);
+
+    spawnMock.mockRestore();
+  });
+
   it("throws when git ls-remote exits non-zero", async () => {
     const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
       if (commandArguments.includes("ls-remote")) {
