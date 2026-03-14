@@ -1,0 +1,43 @@
+name: Yamabiko-lite Ingest
+description: Ingest AI review bot feedback into a dedicated inbox branch
+
+inputs:
+  bot-allowlist:
+    description: Comma-separated bot logins to ingest
+    required: false
+    default: coderabbitai[bot],github-copilot[bot]
+  github-token:
+    description: GitHub token used for API reads and inbox-branch writes
+    required: true
+  inbox-branch:
+    description: Dedicated inbox branch name
+    required: false
+    default: yamabiko-lite-inbox
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+
+    - name: Install action dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: bun install --frozen-lockfile
+
+    - name: Setup git identity
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Run ingestion
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        BOT_ALLOWLIST: ${{ inputs.bot-allowlist }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        INBOX_BRANCH: ${{ inputs.inbox-branch }}
+      run: bun run "$ACTION_PATH/src/actions/ingest.ts"

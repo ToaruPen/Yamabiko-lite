@@ -21,16 +21,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      - name: Setup git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Run ingestion
-        run: bun run src/actions/ingest.ts
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BOT_ALLOWLIST: "coderabbitai[bot],github-copilot[bot]"
+        uses: ./
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          bot-allowlist: coderabbitai[bot],github-copilot[bot]
+          inbox-branch: yamabiko-lite-inbox
