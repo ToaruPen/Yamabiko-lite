@@ -232,6 +232,46 @@ describe("commitAndPushInbox", () => {
     spawnMock.mockRestore();
     sleepMock.mockRestore();
   });
+
+  it("throws when git commit fails", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("diff")) {
+        return createMockSubprocess("", 1) as any;
+      }
+      if (commandArguments.includes("commit")) {
+        return createMockSubprocess("", 1, "error: commit failed") as any;
+      }
+      return createMockSubprocess("", 0) as any;
+    });
+
+    await expect(commitAndPushInbox("/tmp/worktree", "inbox", "test")).rejects.toThrow(
+      "git commit failed (exit 1): error: commit failed",
+    );
+
+    spawnMock.mockRestore();
+  });
+
+  it("throws when all push attempts are exhausted", async () => {
+    const spawnMock = spyOn(Bun, "spawn").mockImplementation((commandArguments: any) => {
+      if (commandArguments.includes("diff")) {
+        return createMockSubprocess("", 1) as any;
+      }
+      if (commandArguments.includes("push")) {
+        return createMockSubprocess("", 1, "error: push rejected") as any;
+      }
+      return createMockSubprocess("", 0) as any;
+    });
+    const sleepMock = spyOn(Bun, "sleep").mockResolvedValue(undefined as any);
+
+    await expect(commitAndPushInbox("/tmp/worktree", "inbox", "test")).rejects.toThrow(
+      "Push to inbox failed after 3 attempts: error: push rejected",
+    );
+
+    expect(sleepMock).toHaveBeenCalledTimes(2);
+
+    spawnMock.mockRestore();
+    sleepMock.mockRestore();
+  });
 });
 
 describe("ensureInboxBranch", () => {
