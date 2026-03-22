@@ -21,6 +21,19 @@ export async function readJsonlFile(filePath: string): Promise<InboxRecord[]> {
   return parseInboxRecords(content);
 }
 
+export function validateJsonlIntegrity(content: null | string, parsedCount: number): void {
+  if (content === null) return;
+  const rawLineCount = content
+    .trim()
+    .split("\n")
+    .filter((line) => line.trim() !== "").length;
+  if (parsedCount < rawLineCount) {
+    throw new Error(
+      `JSONL integrity check failed: parsed ${String(parsedCount)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
+    );
+  }
+}
+
 export async function writeJsonlFile(
   filePath: string,
   records: readonly InboxRecord[],
