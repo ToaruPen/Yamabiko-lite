@@ -77,10 +77,7 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
           throw new Error(`Item not found: ${arguments_.id}`);
         }
 
-        const record = records[recordIndex];
-        if (!record) {
-          throw new Error(`Item not found: ${arguments_.id}`);
-        }
+        const record = records[recordIndex]!;
 
         const oldStatus = record.status;
         assertValidTransition(oldStatus, resolveStatus);
@@ -102,7 +99,6 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
           owner,
         });
         const worktreeMdPath = path.join(worktreePath, mdPath);
-        await mkdir(path.dirname(worktreeMdPath), { recursive: true });
         await Bun.write(worktreeMdPath, markdown);
 
         await commitAndPushInbox(
@@ -128,7 +124,7 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
 function parsePrNumber(pr: string): number {
   const prNumber = Number(pr);
   if (!Number.isInteger(prNumber) || prNumber <= 0) {
-    throw new Error(`Invalid PR number: ${pr}`);
+    throw new Error(`Invalid PR number: "${pr}". Expected a positive integer.`);
   }
 
   return prNumber;

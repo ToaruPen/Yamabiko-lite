@@ -91,16 +91,6 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => {
-  mockReadFileFromBranch.mockReset();
-  mockEnsureInboxBranch.mockReset();
-  mockCommitAndPushInbox.mockReset();
-  mockCleanupWorktree.mockReset();
-  mockWriteJsonlFile.mockReset();
-  mockResolveInboxPathsInBranch.mockReset();
-  mockWithInboxMutationLock.mockReset();
-});
-
 describe("inbox resolve", () => {
   test("resolves claimed → fixed", async () => {
     const record = makeRecord({
@@ -124,6 +114,7 @@ describe("inbox resolve", () => {
     expect(writtenRecords).toHaveLength(1);
     expect(writtenRecords[0]!.status).toBe("fixed");
     expect(writtenRecords[0]!.updatedAt).not.toBe(record.updatedAt);
+    expect(writtenRecords[0]!.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
   });
 
   test("normalizes mixed-case repo input before locking and writing", async () => {
@@ -258,7 +249,7 @@ describe("inbox resolve", () => {
         repo: "owner/repo",
         status: "fixed",
       }),
-    ).rejects.toThrow("Invalid PR number: 0");
+    ).rejects.toThrow(`Invalid PR number: "0". Expected a positive integer.`);
 
     await expect(
       runResolve({
@@ -268,7 +259,7 @@ describe("inbox resolve", () => {
         repo: "owner/repo",
         status: "fixed",
       }),
-    ).rejects.toThrow("Invalid PR number: 1.5");
+    ).rejects.toThrow(`Invalid PR number: "1.5". Expected a positive integer.`);
   });
 
   test("errors when ID is not found", async () => {
