@@ -67,7 +67,10 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
           throw new Error(`Item not found: ${arguments_.id}`);
         }
 
-        const record = records[recordIndex]!;
+        const record = records[recordIndex];
+        if (record === undefined) {
+          throw new Error(`Item not found: ${arguments_.id}`);
+        }
 
         const oldStatus = record.status;
         assertValidTransition(oldStatus, resolveStatus);

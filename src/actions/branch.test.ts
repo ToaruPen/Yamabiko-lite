@@ -268,6 +268,8 @@ describe("commitAndPushInbox", () => {
     );
 
     expect(sleepMock).toHaveBeenCalledTimes(2);
+    expect(sleepMock).toHaveBeenNthCalledWith(1, 1000);
+    expect(sleepMock).toHaveBeenNthCalledWith(2, 2000);
 
     spawnMock.mockRestore();
     sleepMock.mockRestore();

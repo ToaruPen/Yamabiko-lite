@@ -156,6 +156,7 @@ describe("parseInboxRecords", () => {
     expect(records).toHaveLength(1);
     expect(warnings).toHaveLength(1);
     expect(warnings[0]!.line).toBe(2);
+    expect(warnings[0]!.message.trim().length).toBeGreaterThan(0);
   });
 
   it("calls onWarning callback for schema validation failures", () => {
@@ -169,5 +170,6 @@ describe("parseInboxRecords", () => {
     expect(records).toHaveLength(1);
     expect(warnings).toHaveLength(1);
     expect(warnings[0]!.line).toBe(2);
+    expect(warnings[0]!.message.trim().length).toBeGreaterThan(0);
   });
 });
