@@ -138,13 +138,13 @@ describe("fetchPullRequestHeadSha", () => {
 });
 
 describe("error handling", () => {
-  it("throws 'PR not found' on 404 response", () => {
+  it("throws 'PR not found' on 404 response", async () => {
     mockFetch(async () => jsonResponse({ message: "Not Found" }, { status: 404 }));
 
-    expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow("PR not found");
+    await expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow("PR not found");
   });
 
-  it("throws rate limit message on 403 when X-RateLimit-Remaining is 0", () => {
+  it("throws rate limit message on 403 when X-RateLimit-Remaining is 0", async () => {
     mockFetch(async () =>
       jsonResponse(
         { message: "API rate limit exceeded" },
@@ -152,12 +152,12 @@ describe("error handling", () => {
       ),
     );
 
-    expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
+    await expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
       "Rate limit exceeded",
     );
   });
 
-  it("throws access forbidden message on 403 when rate limit remains", () => {
+  it("throws access forbidden message on 403 when rate limit remains", async () => {
     mockFetch(async () =>
       jsonResponse(
         { message: "Resource not accessible by integration" },
@@ -165,7 +165,7 @@ describe("error handling", () => {
       ),
     );
 
-    expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
+    await expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
       "Access forbidden: Resource not accessible by integration",
     );
   });
