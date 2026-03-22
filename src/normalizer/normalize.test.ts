@@ -139,6 +139,7 @@ describe("normalizeEvent", () => {
     expect(reviewCommentRecord?.eventType).toBe("pull_request_review_comment");
     expect(issueCommentRecord?.eventType).toBe("issue_comment");
     expect(normalizeEvent("push", issueCommentFixture)).toBeNull();
+    // issue_comment without headSha returns null (headSha is required for issue_comment events)
     expect(normalizeEvent("issue_comment", issueCommentFixture)).toBeNull();
   });
 

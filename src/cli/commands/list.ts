@@ -28,6 +28,7 @@ export async function listInboxItems(options: ListOptions): Promise<void> {
     filtered = records;
   } else {
     const headSha = await getCurrentHeadSha();
+    // Exclude stale-status records and records from older commits
     filtered = records.filter((r) => r.status !== "stale" && r.headSha === headSha);
   }
 

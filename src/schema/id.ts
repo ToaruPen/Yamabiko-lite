@@ -4,8 +4,12 @@ export function extractDeduplicationKey(record: {
   reviewId?: number;
 }): number {
   if (record.eventType === "pull_request_review") {
-    if (record.reviewId === undefined) {
-      throw new Error(`reviewId is required for pull_request_review events`);
+    if (
+      record.reviewId === undefined ||
+      !Number.isInteger(record.reviewId) ||
+      record.reviewId <= 0
+    ) {
+      throw new Error(`reviewId must be a positive integer for pull_request_review events`);
     }
     return record.reviewId;
   }

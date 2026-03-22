@@ -50,7 +50,7 @@ Escalate those cases to the human instead of resolving the inbox item.
 2. List actionable inbox items for the PR.
 
    ```bash
-    ./bin/yamabiko-lite inbox list --pr <PR_NUMBER> --json
+   ./bin/yamabiko-lite inbox list --pr <PR_NUMBER> --json
    ```
 
    Default behavior already excludes stale items. Focus on `pending` items
@@ -67,7 +67,7 @@ Escalate those cases to the human instead of resolving the inbox item.
 4. Claim one item before editing.
 
    ```bash
-    ./bin/yamabiko-lite inbox claim <ITEM_ID> --pr <PR_NUMBER>
+   ./bin/yamabiko-lite inbox claim <ITEM_ID> --pr <PR_NUMBER>
    ```
 
    Omit `--repo` unless repo inference fails.
@@ -84,10 +84,10 @@ Escalate those cases to the human instead of resolving the inbox item.
    order:
 
    ```bash
-    sh ./scripts/bun-exec.sh run format:check
-    sh ./scripts/bun-exec.sh run lint
-    sh ./scripts/bun-exec.sh x tsc --noEmit
-    sh ./scripts/bun-exec.sh test
+   sh ./scripts/bun-exec.sh run format:check
+   sh ./scripts/bun-exec.sh run lint
+   sh ./scripts/bun-exec.sh x tsc --noEmit
+   sh ./scripts/bun-exec.sh test
    ```
 
    If the repository uses a different test stack, run the repo-native checks.
@@ -99,7 +99,7 @@ Escalate those cases to the human instead of resolving the inbox item.
 8. Resolve the inbox item.
 
    ```bash
-    ./bin/yamabiko-lite inbox resolve <ITEM_ID> --pr <PR_NUMBER> --status fixed
+   ./bin/yamabiko-lite inbox resolve <ITEM_ID> --pr <PR_NUMBER> --status fixed
    ```
 
    Use `--status skipped` only when the item is consciously not being fixed and

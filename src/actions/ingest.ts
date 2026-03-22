@@ -5,7 +5,7 @@ import { fetchPullRequestHeadSha as _fetchPullRequestHeadSha } from "../api/gith
 import { DEFAULT_BOT_ALLOWLIST, parseBotAllowlist } from "../normalizer/bot-filter.ts";
 import { reconcilePullRequest as _reconcilePullRequest } from "../reconciler/reconcile.ts";
 import { parseInboxRecords } from "../schema/inbox-record.ts";
-import { writeJsonlFile as _writeJsonlFile } from "../storage/jsonl.ts";
+import { writeJsonlFile as _writeJsonlFile, validateJsonlIntegrity } from "../storage/jsonl.ts";
 import { generateMarkdownSummary as _generateMarkdownSummary } from "../storage/markdown.ts";
 import {
   cleanupWorktree as _cleanupWorktree,
@@ -93,16 +93,6 @@ function canonicalizeRepoIdentity(owner: string, repo: string): CanonicalRepoIde
 
 function emptyResult(): IngestResult {
   return { added: 0, totalRecords: 0, unchanged: 0, updated: 0 };
-}
-
-if (import.meta.main) {
-  try {
-    await main();
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(message);
-    process.exitCode = 1;
-  }
 }
 
 function extractContext(eventType: string, eventPayload: unknown): IngestContext | undefined {
@@ -262,15 +252,12 @@ function toPullRequestNumber(value: unknown): number {
   return value;
 }
 
-function validateJsonlIntegrity(content: null | string, parsedCount: number): void {
-  if (content === null) return;
-  const rawLineCount = content
-    .trim()
-    .split("\n")
-    .filter((line) => line.trim() !== "").length;
-  if (parsedCount < rawLineCount) {
-    throw new Error(
-      `JSONL integrity check failed: parsed ${String(parsedCount)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
-    );
+if (import.meta.main) {
+  try {
+    await main();
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exitCode = 1;
   }
 }

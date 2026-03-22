@@ -14,7 +14,7 @@ import {
 } from "../../actions/branch.ts";
 import { parseInboxRecords } from "../../schema/inbox-record.ts";
 import { assertValidTransition } from "../../schema/state.ts";
-import { writeJsonlFile } from "../../storage/jsonl.ts";
+import { validateJsonlIntegrity, writeJsonlFile } from "../../storage/jsonl.ts";
 import { generateMarkdownSummary } from "../../storage/markdown.ts";
 import { withInboxMutationLock } from "../inbox-lock.ts";
 import { inferRepoFromRemote, parseRepo } from "../parse-repo.ts";
@@ -65,17 +65,7 @@ export async function runClaim(options: ClaimOptions): Promise<string> {
       const content = await readFileFromBranch(branch, jsonlRelativePath);
       const records = content ? parseInboxRecords(content) : [];
 
-      const rawLineCount = content
-        ? content
-            .trim()
-            .split("\n")
-            .filter((line) => line.trim() !== "").length
-        : 0;
-      if (records.length < rawLineCount) {
-        throw new Error(
-          `JSONL integrity check failed: parsed ${String(records.length)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
-        );
-      }
+      validateJsonlIntegrity(content, records.length);
 
       const { message, updatedRecords } = applyClaimToRecords(records, id);
 

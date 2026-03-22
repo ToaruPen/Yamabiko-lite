@@ -253,4 +253,19 @@ describe("runClaim", () => {
 
     expect(mockCleanupWorktree).toHaveBeenCalledWith("/tmp/yamabiko-inbox-test");
   });
+
+  it("throws on JSONL integrity check failure", async () => {
+    const validRecord = JSON.stringify(makeRecord({ id: "rec-123", status: "pending" }));
+    const invalidLine = JSON.stringify({ garbage: true });
+    mockReadFileFromBranch.mockResolvedValue(`${validRecord}\n${invalidLine}`);
+
+    await expect(
+      runClaim({
+        branch: "yamabiko-lite-inbox",
+        id: "rec-123",
+        pr: "1",
+        repo: "owner/repo",
+      }),
+    ).rejects.toThrow("JSONL integrity check failed");
+  });
 });

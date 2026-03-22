@@ -124,6 +124,8 @@ export function normalizeEvent(
   }
 }
 
+// issue_comment events don't include pull_request.head.sha in their payload,
+// so headSha must be provided externally (from the reconciler or API lookup).
 export function normalizeIssueCommentEvent(
   event: IssueCommentEvent,
   headSha: string,

@@ -80,8 +80,8 @@ function countChanges(
     }
   }
 
-  // unchanged = existing records that were not updated.
-  // Added records are new (not in existingById) so they don't affect this count.
+  // unchanged = existing records that were not updated (includes records
+  // no longer present in the incoming set, which are preserved by upsert).
   return { added, unchanged: existingRecords.length - updated, updated };
 }
 
@@ -108,6 +108,8 @@ function normalizeIssueComments(
     const user = toGitHubUser(comment.user);
     if (!isAllowedBot(user, options.allowlist)) continue;
     const recordId = generateRecordId("github", "issue_comment", comment.id);
+    // Preserve the original headSha for existing records — issue_comment events
+    // don't carry head SHA, so we retain it from the first ingestion.
     const headSha = existingById.get(recordId)?.headSha ?? options.headSha;
     const record = normalizeIssueCommentEvent(
       {

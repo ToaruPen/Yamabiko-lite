@@ -14,7 +14,7 @@ import {
 } from "../../actions/branch.ts";
 import { parseInboxRecords } from "../../schema/inbox-record.ts";
 import { assertValidTransition } from "../../schema/state.ts";
-import { writeJsonlFile } from "../../storage/jsonl.ts";
+import { validateJsonlIntegrity, writeJsonlFile } from "../../storage/jsonl.ts";
 import { generateMarkdownSummary } from "../../storage/markdown.ts";
 import { withInboxMutationLock } from "../inbox-lock.ts";
 import { inferRepoFromRemote, parseRepo } from "../parse-repo.ts";
@@ -60,17 +60,7 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
         const content = await readFileFromBranch(arguments_.branch, jsonlPath);
         const records: InboxRecord[] = content ? parseInboxRecords(content) : [];
 
-        const rawLineCount = content
-          ? content
-              .trim()
-              .split("\n")
-              .filter((line) => line.trim() !== "").length
-          : 0;
-        if (records.length < rawLineCount) {
-          throw new Error(
-            `JSONL integrity check failed: parsed ${String(records.length)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
-          );
-        }
+        validateJsonlIntegrity(content, records.length);
 
         const recordIndex = records.findIndex((r) => r.id === arguments_.id);
         if (recordIndex === -1) {
@@ -78,7 +68,7 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
         }
 
         const record = records[recordIndex];
-        if (!record) {
+        if (record === undefined) {
           throw new Error(`Item not found: ${arguments_.id}`);
         }
 
@@ -102,7 +92,6 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
           owner,
         });
         const worktreeMdPath = path.join(worktreePath, mdPath);
-        await mkdir(path.dirname(worktreeMdPath), { recursive: true });
         await Bun.write(worktreeMdPath, markdown);
 
         await commitAndPushInbox(
@@ -128,7 +117,7 @@ export async function runResolve(arguments_: ResolveArguments): Promise<string> 
 function parsePrNumber(pr: string): number {
   const prNumber = Number(pr);
   if (!Number.isInteger(prNumber) || prNumber <= 0) {
-    throw new Error(`Invalid PR number: ${pr}`);
+    throw new Error(`Invalid PR number: "${pr}". Expected a positive integer.`);
   }
 
   return prNumber;

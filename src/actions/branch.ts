@@ -64,7 +64,7 @@ export async function commitAndPushInbox(
     lastPushStderr = pushStderr;
 
     if (attempt < maxAttempts) {
-      await Bun.sleep(1000);
+      await Bun.sleep(1000 * 2 ** (attempt - 1));
     }
   }
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 import type { InboxRecord } from "../../schema/inbox-record.ts";
 
@@ -57,6 +57,18 @@ mock.module("../../storage/jsonl.ts", () => ({
   readJsonlFile: () => {
     throw new Error("readJsonlFile should not be called in resolve");
   },
+  validateJsonlIntegrity: (content: null | string, parsedCount: number) => {
+    if (content === null) return;
+    const rawLineCount = content
+      .trim()
+      .split("\n")
+      .filter((line: string) => line.trim() !== "").length;
+    if (parsedCount < rawLineCount) {
+      throw new Error(
+        `JSONL integrity check failed: parsed ${String(parsedCount)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
+      );
+    }
+  },
   writeJsonlFile: (...arguments_: Parameters<typeof mockWriteJsonlFile>) =>
     mockWriteJsonlFile(...arguments_),
 }));
@@ -91,16 +103,6 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => {
-  mockReadFileFromBranch.mockReset();
-  mockEnsureInboxBranch.mockReset();
-  mockCommitAndPushInbox.mockReset();
-  mockCleanupWorktree.mockReset();
-  mockWriteJsonlFile.mockReset();
-  mockResolveInboxPathsInBranch.mockReset();
-  mockWithInboxMutationLock.mockReset();
-});
-
 describe("inbox resolve", () => {
   test("resolves claimed → fixed", async () => {
     const record = makeRecord({
@@ -124,6 +126,7 @@ describe("inbox resolve", () => {
     expect(writtenRecords).toHaveLength(1);
     expect(writtenRecords[0]!.status).toBe("fixed");
     expect(writtenRecords[0]!.updatedAt).not.toBe(record.updatedAt);
+    expect(writtenRecords[0]!.updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
   });
 
   test("normalizes mixed-case repo input before locking and writing", async () => {
@@ -258,7 +261,7 @@ describe("inbox resolve", () => {
         repo: "owner/repo",
         status: "fixed",
       }),
-    ).rejects.toThrow("Invalid PR number: 0");
+    ).rejects.toThrow(`Invalid PR number: "0". Expected a positive integer.`);
 
     await expect(
       runResolve({
@@ -268,7 +271,7 @@ describe("inbox resolve", () => {
         repo: "owner/repo",
         status: "fixed",
       }),
-    ).rejects.toThrow("Invalid PR number: 1.5");
+    ).rejects.toThrow(`Invalid PR number: "1.5". Expected a positive integer.`);
   });
 
   test("errors when ID is not found", async () => {

@@ -212,7 +212,9 @@ async function closeLockHandleSafely(lockHandle: LockHandle | undefined): Promis
 
   try {
     await lockHandle.close();
-  } catch {}
+  } catch {
+    // Intentionally swallowed — closeLockHandleSafely is a best-effort cleanup
+  }
 }
 
 function defaultIsProcessAlive(pid: number): boolean {
@@ -349,7 +351,9 @@ async function releaseInboxMutationLock(
 async function removeLockFileIfPresent(lockPath: string, removeLockFile: typeof rm): Promise<void> {
   try {
     await removeLockFile(lockPath, { force: true });
-  } catch {}
+  } catch {
+    // Intentionally swallowed — best-effort cleanup
+  }
 }
 
 function resolveInboxLockDeps(deps: InboxLockDeps): ResolvedInboxLockDeps {
