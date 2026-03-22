@@ -144,4 +144,30 @@ describe("parseInboxRecords", () => {
     const parsed = parseInboxRecords(content);
     expect(parsed).toHaveLength(2);
   });
+
+  it("calls onWarning callback for invalid JSONL lines", () => {
+    const content = `${JSON.stringify(validRecord)}\n{invalid json\n`;
+    const warnings: { line: number; message: string }[] = [];
+
+    const records = parseInboxRecords(content, (line, message) => {
+      warnings.push({ line, message });
+    });
+
+    expect(records).toHaveLength(1);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]!.line).toBe(2);
+  });
+
+  it("calls onWarning callback for schema validation failures", () => {
+    const content = `${JSON.stringify(validRecord)}\n${JSON.stringify({ garbage: true })}\n`;
+    const warnings: { line: number; message: string }[] = [];
+
+    const records = parseInboxRecords(content, (line, message) => {
+      warnings.push({ line, message });
+    });
+
+    expect(records).toHaveLength(1);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]!.line).toBe(2);
+  });
 });

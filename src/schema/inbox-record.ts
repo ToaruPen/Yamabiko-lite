@@ -80,7 +80,10 @@ export function parseInboxRecord(raw: unknown): InboxRecord {
   return normalizeOptionalFields(parsed);
 }
 
-export function parseInboxRecords(jsonlContent: string): InboxRecord[] {
+export function parseInboxRecords(
+  jsonlContent: string,
+  onWarning?: (line: number, message: string) => void,
+): InboxRecord[] {
   const records: InboxRecord[] = [];
   const lines = jsonlContent.split(/\r?\n/);
 
@@ -95,7 +98,11 @@ export function parseInboxRecords(jsonlContent: string): InboxRecord[] {
       parsedJson = JSON.parse(line);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.warn(`[inbox-record] Skipping invalid JSONL line ${String(index + 1)}: ${message}`);
+      if (onWarning) {
+        onWarning(index + 1, message);
+      } else {
+        console.warn(`[inbox-record] Skipping invalid JSONL line ${String(index + 1)}: ${message}`);
+      }
       continue;
     }
 
@@ -122,7 +129,11 @@ export function parseInboxRecords(jsonlContent: string): InboxRecord[] {
       })
       .join("; ");
 
-    console.warn(`[inbox-record] Skipping invalid record on line ${String(index + 1)}: ${issues}`);
+    if (onWarning) {
+      onWarning(index + 1, issues);
+    } else {
+      console.warn(`[inbox-record] Skipping invalid record on line ${String(index + 1)}: ${issues}`);
+    }
   }
 
   return records;
