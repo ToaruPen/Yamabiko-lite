@@ -68,6 +68,16 @@ describe("inferRepoFromRemote", () => {
     expect(spawnMock).toHaveBeenCalledTimes(1);
   });
 
+  it("extracts owner/repo from SSH origin URL", async () => {
+    spawnMock = spyOn(Bun, "spawn").mockImplementation(
+      () => createMockSubprocess("git@github.com:example/project.git\n", 0) as any,
+    );
+
+    await (expect(inferRepoFromRemote()).resolves.toBe(
+      "example/project",
+    ) as unknown as Promise<void>);
+  });
+
   it("normalizes inferred repo casing from remote URL", async () => {
     spawnMock = spyOn(Bun, "spawn").mockImplementation(
       () => createMockSubprocess("https://github.com/Example/Project.git\n", 0) as any,
