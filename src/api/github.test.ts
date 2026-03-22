@@ -141,7 +141,9 @@ describe("error handling", () => {
   it("throws 'PR not found' on 404 response", async () => {
     mockFetch(async () => jsonResponse({ message: "Not Found" }, { status: 404 }));
 
-    await expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow("PR not found");
+    await expect(fetchPullRequestReviews(owner, repo, prNumber, token)).rejects.toThrow(
+      "PR not found",
+    );
   });
 
   it("throws rate limit message on 403 when X-RateLimit-Remaining is 0", async () => {

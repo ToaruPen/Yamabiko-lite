@@ -57,6 +57,18 @@ mock.module("../../storage/jsonl.ts", () => ({
   readJsonlFile: () => {
     throw new Error("readJsonlFile should not be called in resolve");
   },
+  validateJsonlIntegrity: (content: null | string, parsedCount: number) => {
+    if (content === null) return;
+    const rawLineCount = content
+      .trim()
+      .split("\n")
+      .filter((line: string) => line.trim() !== "").length;
+    if (parsedCount < rawLineCount) {
+      throw new Error(
+        `JSONL integrity check failed: parsed ${String(parsedCount)} records but found ${String(rawLineCount)} non-empty lines. Aborting to prevent data loss.`,
+      );
+    }
+  },
   writeJsonlFile: (...arguments_: Parameters<typeof mockWriteJsonlFile>) =>
     mockWriteJsonlFile(...arguments_),
 }));

@@ -132,7 +132,9 @@ export function parseInboxRecords(
     if (onWarning) {
       onWarning(index + 1, issues);
     } else {
-      console.warn(`[inbox-record] Skipping invalid record on line ${String(index + 1)}: ${issues}`);
+      console.warn(
+        `[inbox-record] Skipping invalid record on line ${String(index + 1)}: ${issues}`,
+      );
     }
   }
 

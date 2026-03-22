@@ -76,6 +76,8 @@ describe("inferRepoFromRemote", () => {
     await (expect(inferRepoFromRemote()).resolves.toBe(
       "example/project",
     ) as unknown as Promise<void>);
+
+    expect(spawnMock).toHaveBeenCalledTimes(1);
   });
 
   it("normalizes inferred repo casing from remote URL", async () => {
